@@ -15,7 +15,6 @@ def auto_control(_spawn_transform, _bridge: bridge.CarlaBridge):
         }
     )
 
-    controller = KeyboardControl(pov)
     agent = ShortestPathAgent(pov.player)
 
     destinations = []
@@ -30,7 +29,9 @@ def auto_control(_spawn_transform, _bridge: bridge.CarlaBridge):
     try:
         while True:
             _bridge.world.wait_for_tick()
-            pov.on_tick()
+
+            if 'break' in pov.on_tick():
+                break
 
             location = pov.player.get_location()
 
@@ -39,14 +40,9 @@ def auto_control(_spawn_transform, _bridge: bridge.CarlaBridge):
                     hint.destroy()
                     _bridge.hints.remove(hint)
 
-            if controller.parse_events():
-                return
-
             if agent.done():
                 if len(destinations) > 0:
                     agent.set_destination(destinations.pop(0))
-                    # pov.hud.notification("Target reached", seconds=4.0)
-                    # print("The target has been reached, searching for another target")
                 else:
                     break
 

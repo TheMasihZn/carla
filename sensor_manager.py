@@ -8,14 +8,14 @@ from carla import ColorConverter
 import bridge
 
 
-class CameraManager(object):
+class SensorManager(object):
 
     # noinspection PyArgumentList
-    def __init__(self, _bridge: bridge.CarlaBridge, player, size: dict):
+    def __init__(self, _bridge: bridge.CarlaBridge, player, window_size: dict):
         self.surface = None
         self._player = player
-        self.width = size['width']
-        self.height = size['height']
+        self.width = window_size['width']
+        self.height = window_size['height']
 
         bound_x = 0.5 + self._player.bounding_box.extent.x
         bound_y = 0.5 + self._player.bounding_box.extent.y
@@ -42,6 +42,18 @@ class CameraManager(object):
                     z=0.4 * bound_z
                 ), carla.Rotation()),
                 'attachment': AttachmentType.Rigid,
+            }, {
+                'name': 'Lane Invasion',
+                'id': 'sensor.other.lane_invasion',
+                'convertion_methode': None,
+                'transform': carla.Transform(carla.Location(), carla.Rotation()),
+                'attachment': AttachmentType.Rigid,
+            }, {
+                'name': 'GNSS',
+                'id': 'sensor.other.gnss',
+                'convertion_methode': None,
+                'transform': carla.Transform(carla.Location(x=1.0, z=2.8), carla.Rotation()),
+                'attachment': AttachmentType.Rigid,
             }
         ])
 
@@ -65,17 +77,31 @@ class CameraManager(object):
 
             # separate every type of sensor deta
             weak_self = weakref.ref(self)
-            if sensor_data['id'].startswith('sensor.camera'):
+            if 'camera' in sensor_data['id']:
                 actor.listen(
-                    lambda image: CameraManager.__process_camera_data(
+                    lambda image: SensorManager.__process_camera_data(
                         weak_self,
                         image,
                         sensor_data['convertion_methode']
                     )
                 )
-            elif sensor_data['id'].startswith('sensor.lidar'):
+            elif 'lidar' in sensor_data['id']:
                 actor.listen(
-                    lambda data: CameraManager.__process_lidar_data(
+                    lambda data: SensorManager.__process_lidar_data(
+                        weak_self,
+                        data
+                    )
+                )
+            elif 'lane_invasion' in sensor_data['id']:
+                actor.listen(
+                    lambda data: SensorManager.__process_lane_invasion_data(
+                        weak_self,
+                        data
+                    )
+                )
+            elif 'gnss' in sensor_data['id']:
+                actor.listen(
+                    lambda data: SensorManager.__process_gnss_event(
                         weak_self,
                         data
                     )
@@ -83,17 +109,17 @@ class CameraManager(object):
             sensor_list.append(actor)
         return sensor_list
 
-    @staticmethod   # self = weak_self
+    @staticmethod  # self = weak_self
     def __process_camera_data(self, image: carla.Image, convertion_methode=None):
         if convertion_methode:
-            image.convert(self.sensors[self.index][1])
+            image.convert(convertion_methode)
         array = np.frombuffer(image.raw_data, dtype=np.dtype("uint8"))
         array = np.reshape(array, (image.height, image.width, 4))
         array = array[:, :, :3]
         array = array[:, :, ::-1]
         self.surface = pygame.surfarray.make_surface(array.swapaxes(0, 1))
 
-    @staticmethod   # self = weak_self
+    @staticmethod  # self = weak_self
     def __process_lidar_data(self, data: carla.LidarMeasurement):
         points = np.frombuffer(data.raw_data, dtype=np.dtype('f4'))
         points = np.reshape(points, (int(points.shape[0] / 4), 4))
@@ -108,3 +134,17 @@ class CameraManager(object):
         lidar_img[tuple(lidar_data.T)] = (255, 255, 255)
         self.surface = pygame.surfarray.make_surface(lidar_img)
 
+    @staticmethod  # self = weak_self
+    def __process_lane_invasion_data(weak_self, event: carla.LaneInvasionEvent):
+        self = weak_self()
+        if not self:
+            return
+        lane_types = set(x.type for x in event.crossed_lane_markings)
+
+    @staticmethod  # self = weak_Self
+    def __process_gnss_event(weak_self, event):
+        self = weak_self()
+        if not self:
+            return
+        self.lat = event.latitude
+        self.lon = event.longitude

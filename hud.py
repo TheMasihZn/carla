@@ -1,5 +1,6 @@
 import math
 import pygame
+from pygame.locals import (KMOD_CTRL, K_ESCAPE, K_q)
 
 
 class HUD(object):
@@ -79,5 +80,21 @@ class HUD(object):
             v_offset += 18
 
             pygame.display.flip()
+
     # self._notifications.render(self.display)
     # self.help.render(self.display)
+
+    @staticmethod
+    def return_key_pressed():
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                return True
+
+            if event.type == pygame.KEYUP:
+                if (
+                        (event.key == K_ESCAPE)
+                        or
+                        (event.key == K_q and pygame.key.get_mods() & KMOD_CTRL)
+                ):
+                    return True
+
