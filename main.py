@@ -1,8 +1,9 @@
 import carla
 import pygame
 import bridge
-from helper import equal
+from calculation_delegate import equal
 from pov import WorldPOV
+from agent import ShortestPathAgent
 
 
 def auto_control(_spawn_transform, _bridge: bridge.CarlaBridge):
