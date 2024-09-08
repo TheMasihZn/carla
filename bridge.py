@@ -1,6 +1,6 @@
 import random
 import carla
-import helper
+import calculation_delegate
 
 random.seed(0)
 SpawnActor = carla.command.SpawnActor
