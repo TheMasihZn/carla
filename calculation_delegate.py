@@ -11,6 +11,7 @@ def equal(a: carla.Location, b: carla.Location, threshold=1):
             a.y <= b.y + threshold
             )
 
+
 # noinspection PyTypeChecker
 def read_route_from_file():
     _route = []

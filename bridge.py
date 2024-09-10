@@ -1,6 +1,6 @@
 import random
 import carla
-import calculation_delegate
+import calculation_delegate as helper
 
 random.seed(0)
 SpawnActor = carla.command.SpawnActor
@@ -29,7 +29,8 @@ class CarlaBridge(object):
         self.spawn_points = list(self.map.get_spawn_points())
         random.shuffle(self.spawn_points)
 
-        _blueprints = self.world.get_blueprint_library().filter('vehicle.*')
+        self.blueprint_library = self.world.get_blueprint_library()
+        _blueprints = self.blueprint_library.filter('vehicle.*')
         self.blueprints = [x for x in _blueprints if x.get_attribute('base_type') == 'car']
 
         self.cars = []
@@ -115,19 +116,6 @@ class CarlaBridge(object):
                 if not response.error:
                     n_cars -= 1
                     self.cars.append(self.world.get_actors().find(response.actor_id))
-
-    def spawn_hints(self):
-        _hint_bp = self.world.get_blueprint_library().filter('static.prop.ironplank')[0]
-        for t in self.route:
-            t.location.z = 0
-            _hint = self.world.spawn_actor(_hint_bp, t)
-            self.hints.append(_hint)
-
-    def destroy_hints(self):
-        for hint in self.hints:
-            if hint:
-                hint.destroy()
-                self.hints.remove(hint)
 
     def draw(self):
         helper.draw_route(

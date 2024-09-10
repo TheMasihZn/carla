@@ -3,7 +3,7 @@ from collections import deque
 import random
 
 import carla
-from cruise_control import VehiclePIDController
+from controller import VehiclePIDController
 from misc import draw_waypoints, get_speed
 
 

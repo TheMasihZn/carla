@@ -49,7 +49,7 @@ class ShortestPathAgent(object):
             :param speed (carl.VehicleControl): control to be modified
         """
         control.throttle = 0.0
-        control.brake = self._max_brake
+        control.brake = 1.0
         control.hand_brake = False
         return control
 

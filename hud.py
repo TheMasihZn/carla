@@ -1,4 +1,6 @@
 import math
+
+import numpy as np
 import pygame
 from pygame.locals import (KMOD_CTRL, K_ESCAPE, K_q)
 
@@ -6,6 +8,8 @@ from pygame.locals import (KMOD_CTRL, K_ESCAPE, K_q)
 class HUD(object):
 
     def __init__(self, width, height):
+        pygame.init()
+        pygame.font.init()
         self.dim = (width, height)
         self.font = pygame.font.Font(pygame.font.get_default_font(), 12)
         self._text_template = []
@@ -19,17 +23,17 @@ class HUD(object):
 
     def set_text_for_tick(
             self,
-            pov_world,
+            _sensor_info,
             _transform,
             _velocity,
             _control,
+            _traffic_lights
             # _vehicles
     ):
 
         self._text_template = [
             'Speed:   % 15.0f km/h' % (3.6 * math.sqrt(_velocity.x ** 2 + _velocity.y ** 2 + _velocity.z ** 2)),
             'Location:% 20s' % ('(% 5.1f, % 5.1f)' % (_transform.location.x, _transform.location.y)),
-            'GNSS:% 24s' % ('(% 2.6f, % 3.6f)' % (pov_world.gnss_sensor.lat, pov_world.gnss_sensor.lon)),
             'Height:  % 18.0f m' % _transform.location.z,
             '',
             ('Throttle:', _control.throttle, 0.0, 1.0),
@@ -43,7 +47,13 @@ class HUD(object):
             # 'Number of vehicles in front: % 8d' % (len(_vehicles) + 1)
         ]
 
-    def render(self):
+    def render(self, _sensor_info):
+        frame = _sensor_info[0]['data']
+        if frame is not None:
+            _image_surface = pygame.surfarray.make_surface(frame)
+            if _image_surface is not None:
+                self.display.blit(_image_surface, (0, 0))
+
         info_surface = pygame.Surface((220, self.dim[1]))
         info_surface.set_alpha(100)
         self.display.blit(info_surface, (0, 0))
@@ -78,8 +88,7 @@ class HUD(object):
                 surface = self.font.render(item, True, (255, 255, 255))
                 self.display.blit(surface, (8, v_offset))
             v_offset += 18
-
-            pygame.display.flip()
+        pygame.display.flip()
 
     # self._notifications.render(self.display)
     # self.help.render(self.display)
