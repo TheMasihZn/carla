@@ -32,9 +32,8 @@ if __name__ == '__main__':
     agent.set_destination(destinations.pop(0))
 
     try:
-        bridge.world.wait_for_tick()
         while True:
-
+            bridge.world.wait_for_tick()
             if 'break' in pov.on_tick():
                 break
 

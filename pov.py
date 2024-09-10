@@ -18,6 +18,7 @@ class WorldPOV(object):
         self.hud = HUD(size['height'], size['width'])
         self.spawn_transform = _spawn_transform
         self._weather_index = 0
+        self.target_lights = _bridge.target_lights
 
         self.player = self.__spawn_hero(_bridge, _spawn_transform)
         self.sensor_manager = SensorManager(_bridge, self.player, size)
@@ -71,7 +72,8 @@ class WorldPOV(object):
             self.sensor_manager.sensors,
             self.player.get_transform(),
             self.player.get_velocity(),
-            self.player.get_control()
+            self.player.get_control(),
+            self.target_lights
         )
 
         self.hud.render(self.sensor_manager.sensors)
@@ -84,19 +86,14 @@ class WorldPOV(object):
     # noinspection PyArgumentList
     def destroy(self):
 
-        sensor_count = len(self.sensor_manager.sensors)
-        while sensor_count > 0:
-            actor = self.sensor_manager.sensors[sensor_count]['actor']
+        destroy_list = [
+            *[sensor['actor'] for sensor in self.sensor_manager.sensors],
+            self.player]
+        for actor in destroy_list:
             if actor is not None:
                 done = actor.destroy()
                 if done:
-                    self.sensor_manager.sensors[sensor_count]['actor'] = None
-                    sensor_count -= 1
-
-        while True:
-            done = self.player.destroy()
-            if done:
-                break
+                    destroy_list.remove(actor)
 
         while len(self.hints) > 0:
             for hint in self.hints:
