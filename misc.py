@@ -4,13 +4,6 @@ import carla
 
 
 def draw_waypoints(world, waypoints, z=0.5):
-    """
-    Draw a list of waypoints at a certain height given in z.
-
-        :param world: carla.world object
-        :param waypoints: list or iterable container with the waypoints to draw
-        :param z: height in meters
-    """
     for wpt in waypoints:
         wpt_t = wpt.transform
         begin = wpt_t.location + carla.Location(z=z)
@@ -20,15 +13,8 @@ def draw_waypoints(world, waypoints, z=0.5):
 
 
 def get_speed(vehicle):
-    """
-    Compute speed of a vehicle in Km/h.
-
-        :param vehicle: the vehicle for which speed is calculated
-        :return: speed as a float in Km/h
-    """
-    vel = vehicle.get_velocity()
-
-    return 3.6 * math.sqrt(vel.x ** 2 + vel.y ** 2 + vel.z ** 2)
+    v = vehicle.get_velocity()
+    return 3.6 * math.sqrt(v.x ** 2 + v.y ** 2 + v.z ** 2)
 
 def get_trafficlight_trigger_location(traffic_light):
     """

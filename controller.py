@@ -19,7 +19,6 @@ class VehiclePIDController():
     low level control a vehicle from client side
     """
 
-
     def __init__(self, vehicle, args_lateral, args_longitudinal, offset=0, max_throttle=0.75, max_brake=0.3,
                  max_steering=0.8):
         """
@@ -124,7 +123,7 @@ class PIDLongitudinalController():
         self._k_p = K_P
         self._k_i = K_I
         self._k_d = K_D
-        self._dt = dt
+        self._dt = 0.03
         self._error_buffer = deque(maxlen=10)
 
     def run_step(self, target_speed, debug=False):
@@ -192,7 +191,7 @@ class PIDLateralController():
         self._k_p = K_P
         self._k_i = K_I
         self._k_d = K_D
-        self._dt = dt
+        self._dt = 0.03
         self._offset = offset
         self._e_buffer = deque(maxlen=10)
 

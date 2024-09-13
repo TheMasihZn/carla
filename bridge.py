@@ -15,8 +15,9 @@ class CarlaBridge(object):
     def __init__(self):
         self.client = carla.Client('127.0.0.1', 2000)
         self.world = self.client.get_world()
+
         self.settings = self.world.get_settings()
-        self.map = self.world.get_map()
+        self.map: carla.Map = self.world.get_map()
 
         self.traffic_manager = self.client.get_trafficmanager(8000)
         self.traffic_manager.set_global_distance_to_leading_vehicle(2.5)
@@ -34,6 +35,7 @@ class CarlaBridge(object):
         self.blueprints = [x for x in _blueprints if x.get_attribute('base_type') == 'car']
 
         self.cars = []
+        self.npc_list = []
         self.hints = []
 
         self.traffic_lights = list(self.world.get_actors().filter('traffic.traffic_light'))
@@ -69,7 +71,6 @@ class CarlaBridge(object):
                 },
             }
         )
-        self.route = helper.read_route_from_file()
 
     def reset_actors(self):
         while len(self.cars) > 0:
@@ -117,13 +118,13 @@ class CarlaBridge(object):
                     n_cars -= 1
                     self.cars.append(self.world.get_actors().find(response.actor_id))
 
-    def draw(self):
-        helper.draw_route(
-            waypoints=self.map.generate_waypoints(distance=2.0),
-            route=self.route,
-            all_traffic_lights=self.traffic_lights,
-            chosen_traffic_lights=self.target_lights
-        )
+    # def draw(self):
+    #     helper.draw_route(
+    #         waypoints=self.map.generate_waypoints(distance=2.0),
+    #         route=self.route,
+    #         all_traffic_lights=self.traffic_lights,
+    #         chosen_traffic_lights=self.target_lights
+    #     )
 
     # noinspection PyArgumentList
     def generate_destinations(self, start_location):
@@ -140,7 +141,7 @@ class CarlaBridge(object):
 
     def __delete__(self, instance):
         self.reset_actors()
-        self.destroy_hints()
+        # self.destroy_hints()
 
         # spawn_teaffic(n_cars=20)
 

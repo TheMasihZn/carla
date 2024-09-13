@@ -1,8 +1,11 @@
+import csv
 from enum import IntEnum
 from collections import deque
 import random
 
 import carla
+
+import bridge
 from controller import VehiclePIDController
 from misc import draw_waypoints, get_speed
 
@@ -12,14 +15,14 @@ class RoadOption(IntEnum):
     LEFT = 1
     RIGHT = 2
     STRAIGHT = 3
-    LANEFOLLOW = 4
-    CHANGELANELEFT = 5
-    CHANGELANERIGHT = 6
+    LANE_FOLLOW = 4
+    CHANGE_LANE_LEFT = 5
+    CHANGE_LANE_RIGHT = 6
 
 
-class MyLocalPlanner(object):
+class LocalPlanner(object):
 
-    def __init__(self, vehicle, opt_dict={}, map_inst=None):
+    def __init__(self, vehicle, _bridge: bridge.CarlaBridge):
         self._vehicle = vehicle
         self._world = self._vehicle.get_world()
         self._map = self._world.get_map()
@@ -28,124 +31,23 @@ class MyLocalPlanner(object):
         self.target_waypoint = None
         self.target_road_option = None
 
-        self._waypoints_queue = deque(maxlen=10000)
-        self._min_waypoint_queue_length = 100
-        self._stop_waypoint_creation = False
-
-        # Base parameters
+        self._waypoints_queue = deque([(_bridge.map.get_waypoint(route), RoadOption.LANE_FOLLOW) for route in _bridge.route])
         self._dt = 1.0 / 40.0
         self._target_speed = 40.0  # Km/h
         self._sampling_radius = 2.0
-        self._args_lateral_dict = {'K_P': 1.95, 'K_I': 0.05, 'K_D': 0.2, 'dt': self._dt}
-        self._args_longitudinal_dict = {'K_P': 1.0, 'K_I': 0.05, 'K_D': 0, 'dt': self._dt}
-        self._max_throt = 0.75
-        self._max_brake = 0.3
-        self._max_steer = 0.8
         self._offset = 0
-        self._base_min_distance = 3.0
+        self.tailgating_distance = 3.0
         self._distance_ratio = 0.5
-        self._follow_speed_limits = False
 
-        # Overload parameters
-        if opt_dict:
-            if 'dt' in opt_dict:
-                self._dt = opt_dict['dt']
-            if 'target_speed' in opt_dict:
-                self._target_speed = opt_dict['target_speed']
-            if 'sampling_radius' in opt_dict:
-                self._sampling_radius = opt_dict['sampling_radius']
-            if 'lateral_control_dict' in opt_dict:
-                self._args_lateral_dict = opt_dict['lateral_control_dict']
-            if 'longitudinal_control_dict' in opt_dict:
-                self._args_longitudinal_dict = opt_dict['longitudinal_control_dict']
-            if 'max_throttle' in opt_dict:
-                self._max_throt = opt_dict['max_throttle']
-            if 'max_brake' in opt_dict:
-                self._max_brake = opt_dict['max_brake']
-            if 'max_steering' in opt_dict:
-                self._max_steer = opt_dict['max_steering']
-            if 'offset' in opt_dict:
-                self._offset = opt_dict['offset']
-            if 'base_min_distance' in opt_dict:
-                self._base_min_distance = opt_dict['base_min_distance']
-            if 'distance_ratio' in opt_dict:
-                self._distance_ratio = opt_dict['distance_ratio']
-            if 'follow_speed_limits' in opt_dict:
-                self._follow_speed_limits = opt_dict['follow_speed_limits']
-
-        # initializing controller
-        self._init_controller()
-
-    def reset_vehicle(self):
-        """Reset the ego-vehicle"""
-        self._vehicle = None
-
-    def _init_controller(self):
-        """Controller initialization"""
-        self._vehicle_controller = VehiclePIDController(self._vehicle,
-                                                        args_lateral=self._args_lateral_dict,
-                                                        args_longitudinal=self._args_longitudinal_dict,
-                                                        offset=self._offset,
-                                                        max_throttle=self._max_throt,
-                                                        max_brake=self._max_brake,
-                                                        max_steering=self._max_steer)
-
-        # Compute the current vehicle waypoint
-        current_waypoint = self._map.get_waypoint(self._vehicle.get_location())
-        self.target_waypoint, self.target_road_option = (current_waypoint, RoadOption.LANEFOLLOW)
-        self._waypoints_queue.append((self.target_waypoint, self.target_road_option))
-
-    def set_speed(self, speed):
-        """
-        Changes the target speed
-
-        :param speed: new target speed in Km/h
-        :return:
-        """
-        if self._follow_speed_limits:
-            print("WARNING: The max speed is currently set to follow the speed limits. "
-                  "Use 'follow_speed_limits' to deactivate this")
-        self._target_speed = speed
-
-    def follow_speed_limits(self, value=True):
-        """
-        Activates a flag that makes the max speed dynamically vary according to the spped limits
-
-        :param value: bool
-        :return:
-        """
-        self._follow_speed_limits = value
-
-    def _compute_next_waypoints(self, k=1):
-        """
-        Add new waypoints to the trajectory queue.
-
-        :param k: how many waypoints to compute
-        :return:
-        """
-        # check we do not overflow the queue
-        available_entries = self._waypoints_queue.maxlen - len(self._waypoints_queue)
-        k = min(available_entries, k)
-
-        for _ in range(k):
-            last_waypoint = self._waypoints_queue[-1][0]
-            next_waypoints = list(last_waypoint.next(self._sampling_radius))
-
-            if len(next_waypoints) == 0:
-                break
-            elif len(next_waypoints) == 1:
-                # only one option available ==> lanefollowing
-                next_waypoint = next_waypoints[0]
-                road_option = RoadOption.LANEFOLLOW
-            else:
-                # random choice between the possible options
-                road_options_list = _retrieve_options(
-                    next_waypoints, last_waypoint)
-                road_option = random.choice(road_options_list)
-                next_waypoint = next_waypoints[road_options_list.index(
-                    road_option)]
-
-            self._waypoints_queue.append((next_waypoint, road_option))
+        self._vehicle_controller = VehiclePIDController(
+            self._vehicle,
+            args_lateral={'K_P': 1.95, 'K_I': 0.05, 'K_D': 0.2, 'dt': self._dt},
+            args_longitudinal={'K_P': 1.0, 'K_I': 0.05, 'K_D': 0, 'dt': self._dt},
+            offset=self._offset,
+            max_throttle=1.0,
+            max_brake=1.0,
+            max_steering=0.8
+        )
 
     def set_global_plan(self, current_plan, stop_waypoint_creation=True, clean_queue=True):
         """
@@ -174,11 +76,7 @@ class MyLocalPlanner(object):
 
         self._stop_waypoint_creation = stop_waypoint_creation
 
-    def set_offset(self, offset):
-        """Sets an offset for the vehicle"""
-        self._vehicle_controller.set_offset(offset)
-
-    def run_step(self, debug=False):
+    def run_step(self, debug=True):
         """
         Execute one step of local planning which involves running the longitudinal and lateral PID controllers to
         follow the waypoints trajectory.
@@ -186,42 +84,13 @@ class MyLocalPlanner(object):
         :param debug: boolean flag to activate waypoints debugging
         :return: control to be applied
         """
-        if self._follow_speed_limits:
-            self._target_speed = self._vehicle.get_speed_limit()
-
-        # Add more waypoints too few in the horizon
-        if not self._stop_waypoint_creation and len(self._waypoints_queue) < self._min_waypoint_queue_length:
-            self._compute_next_waypoints(k=self._min_waypoint_queue_length)
-
         # for location in [w.transform.locatoin for w,_ in self._waypoints_queue]:
         #     self._world.debug.draw_string(carla.Location(*location), 'O', draw_shadow=False,
         #                                   color=carla.Color(r=255, g=0, b=0), life_time=10.0,
         #                                   persistent_lines=True)
+
         # Purge the queue of obsolete waypoints
         veh_location = self._vehicle.get_location()
-        vehicle_speed = get_speed(self._vehicle) / 3.6
-        self._min_distance = self._base_min_distance + self._distance_ratio * vehicle_speed
-
-        num_waypoint_removed = 0
-        # cone_bp = blueprint_library.find('static.prop.cone')
-        for waypoint, _ in self._waypoints_queue:
-            # blueprint_library = world.get_blueprint_library()
-            # cone = world.spawn_actor(cone_bp, waypoint.transform)
-            # cone.set_attribute('color', 'blue')
-
-            if len(self._waypoints_queue) - num_waypoint_removed == 1:
-                min_distance = 1  # Don't remove the last waypoint until very close by
-            else:
-                min_distance = self._min_distance
-
-            if veh_location.distance(waypoint.transform.location) < min_distance:
-                num_waypoint_removed += 1
-            else:
-                break
-
-        if num_waypoint_removed > 0:
-            for _ in range(num_waypoint_removed):
-                self._waypoints_queue.popleft()
 
         # Get the target waypoint and move using the PID controllers. Stop if no target waypoint
         if len(self._waypoints_queue) == 0:
@@ -234,9 +103,6 @@ class MyLocalPlanner(object):
         else:
             self.target_waypoint, self.target_road_option = self._waypoints_queue[0]
             control = self._vehicle_controller.run_step(self._target_speed, self.target_waypoint)
-
-        if debug:
-            draw_waypoints(self._vehicle.get_world(), [self.target_waypoint], 1.0)
 
         return control
 
@@ -268,6 +134,15 @@ class MyLocalPlanner(object):
         """
         return len(self._waypoints_queue) == 0
 
+    # noinspection PyTypeChecker
+    @staticmethod
+    def read_route_from_file():
+        _route = []
+        for line in csv.DictReader(open('route.csv', 'r')):
+            rotation = carla.Rotation(float(line['pitch']), float(line['yaw']), float(line['roll']))
+            carla_location = carla.Location(float(line['x']), float(line['y']), float(line['z']))
+            _route.append(carla.Transform(carla_location, rotation))
+        return _route
 
 def _retrieve_options(list_waypoints, current_waypoint):
     """
@@ -316,3 +191,4 @@ def _compute_connection(current_waypoint, next_waypoint, threshold=35):
         return RoadOption.LEFT
     else:
         return RoadOption.RIGHT
+

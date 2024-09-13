@@ -3,7 +3,9 @@ import bridge
 from sensor_manager import SensorManager
 from hud import HUD
 import random
-from calculation_delegate import equal
+from agent import Agent
+from router import Router
+from controller import VehiclePIDController
 
 random.seed(0)
 
@@ -16,22 +18,44 @@ class WorldPOV(object):
             size: dict
     ):
         self.hud = HUD(size['height'], size['width'])
-        self.spawn_transform = _spawn_transform
         self._weather_index = 0
         self.target_lights = _bridge.target_lights
 
-        self.player = self.__spawn_hero(_bridge, _spawn_transform)
+        self.player: carla.Vehicle = self.__spawn_hero(
+            _bridge,
+            _spawn_transform
+        )
         self.sensor_manager = SensorManager(_bridge, self.player, size)
-        self.hints = self.spawn_hints(_bridge)
 
-    @staticmethod
+        self.router = Router(_bridge)
+        self.agent = Agent(self.player, _bridge)
+        self.controller = VehiclePIDController(
+            self.player,
+            args_lateral={
+                'K_P': 1.95,
+                'K_I': 0.05,
+                'K_D': 0.2,
+                'dt': 0.0
+            },
+            args_longitudinal={
+                'K_P': 1.0,
+                'K_I': 0.05,
+                'K_D': 0.0,
+                'dt': 0.0
+            },
+            offset=0.0,
+            max_throttle=1.0,
+            max_brake=1.0,
+            max_steering=0.8
+        )
+
     def __spawn_hero(
+            self,
             _bridge: bridge.CarlaBridge,
             _spawn_point: carla.Transform
     ) -> carla.Actor:
-        """
-        :return: hero actor
-        """
+        if self:
+            pass
         hero_bp = random.choice(_bridge.blueprints)
         hero_bp.set_attribute('role_name', 'hero')
 
@@ -43,31 +67,8 @@ class WorldPOV(object):
 
         return hero
 
-    @staticmethod
-    def spawn_hints(
-            _bridge: bridge.CarlaBridge
-    ):
-        _hints = []
-        _hint_bp = _bridge.blueprint_library.filter('static.prop.ironplank')[0]
-        for t in _bridge.route:
-            t.location.z = 0
-            _hint = _bridge.world.spawn_actor(_hint_bp, t)
-            _hints.append(_hint)
-
-        return _hints
-
     # noinspection PyArgumentList
-    def on_tick(self):
-        """
-        :return: 'break' if break event
-        """
-        location = self.player.get_location()
-
-        for hint in self.hints:
-            if equal(hint.get_location(), location, 3):
-                hint.destroy()
-                self.hints.remove(hint)
-
+    def on_tick(self, _bridge: bridge.CarlaBridge):
         self.hud.set_text_for_tick(
             self.sensor_manager.sensors,
             self.player.get_transform(),
@@ -76,12 +77,36 @@ class WorldPOV(object):
             self.target_lights
         )
 
-        self.hud.render(self.sensor_manager.sensors)
-
         if self.hud.return_key_pressed():
             return 'break'
-        else:
-            return ''
+
+        self.router.on_tick(self.player.get_transform())
+        next_dest = self.router.next_destination()
+        if not next_dest:
+            return 'break'
+
+        control = None
+        hazard_distance = self.agent.detect_hazard(
+            next_dest['transform'].location
+        )
+        if (not control) and hazard_distance:
+            control = self.agent.stop_in(hazard_distance)
+
+        if (not control) and self.agent.traffic_light_stop(self.player):
+            control = self.agent.stop_in(self.agent.traffic_light_stop(self.player))
+
+        if not control:
+            control = self.controller.run_step(
+                40.0,
+                _bridge.map.get_waypoint(
+                    next_dest['transform'].location
+                )
+            )
+        self.player.apply_control(control)
+
+        self.hud.render(self.sensor_manager.sensors)
+
+        return ''
 
     # noinspection PyArgumentList
     def destroy(self):
@@ -89,15 +114,11 @@ class WorldPOV(object):
         destroy_list = [
             *[sensor['actor'] for sensor in self.sensor_manager.sensors],
             self.player]
-        for actor in destroy_list:
-            if actor is not None:
-                done = actor.destroy()
-                if done:
-                    destroy_list.remove(actor)
-
-        while len(self.hints) > 0:
-            for hint in self.hints:
-                if hint:
-                    done = hint.destroy()
+        while len(destroy_list) > 0:
+            for actor in destroy_list:
+                if actor is not None:
+                    done = actor.destroy()
                     if done:
-                        self.hints.remove(hint)
+                        destroy_list.remove(actor)
+
+        # self.router.destroy()
