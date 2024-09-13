@@ -28,32 +28,29 @@ if __name__ == '__main__':
 
     spawn_transform.location.z = 2.0
 
-    pov = WorldPOV(
-        _spawn_transform=spawn_transform,
-        _bridge=bridge,
-        size={
-            'width': 480,
-            'height': 720,
-        }
-    )
-
-    agent = Agent(pov.player, _bridge=bridge)
-
-    # destinations = []
-    # for lap in range(1):
-    #     for dest in bridge.generate_destinations(spawn_transform.location):
-    #         destinations.append(dest)
-    #
-    # agent.set_destination(destinations.pop(0))
-
     try:
+        bridge.spawn_teraffic(40)
+        # pov = WorldPOV(
+        #     _spawn_transform=spawn_transform,
+        #     _bridge=bridge,
+        #     size={
+        #         'width': 480,
+        #         'height': 720,
+        #     }
+        # )
+        #
+        # agent = Agent(pov.player, _bridge=bridge)
+
         while True:
             bridge.world.wait_for_tick()
-            if 'break' in pov.on_tick(bridge):
-                break
+        #
+        #     if 'break' in pov.on_tick(bridge):
+        #         break
 
+    except KeyboardInterrupt:
+        pass
     finally:
-        pov.destroy()
         pygame.quit()
-        bridge.delete_artificial_actors()
+        print('destroying actors...')
+        bridge.delete_created_actors()
 

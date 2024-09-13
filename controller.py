@@ -17,59 +17,37 @@ def get_speed(vehicle):
 
 
 class VehiclePIDController(object):
-    """
-    VehiclePIDController is the combination of two PID controllers
-    (lateral and longitudinal) to perform the
-    low level control a vehicle from client side
-    """
-
-    def __init__(self, vehicle, args_lateral, args_longitudinal, offset=0, max_throttle=0.75, max_brake=0.3,
-                 max_steering=0.8):
-        """
-        Constructor method.
-
-        :param vehicle: actor to apply to local planner logic onto
-        :param args_lateral: dictionary of arguments to set the lateral PID controller
-        using the following semantics:
-            K_P -- Proportional term
-            K_D -- Differential term
-            K_I -- Integral term
-        :param args_longitudinal: dictionary of arguments to set the longitudinal
-        PID controller using the following semantics:
-            K_P -- Proportional term
-            K_D -- Differential term
-            K_I -- Integral term
-        :param offset: If different than zero, the vehicle will drive displaced from the center line.
-        Positive values imply a right offset while negative ones mean a left one. Numbers high enough
-        to cause the vehicle to drive through other lanes might break the controller.
-        """
-
+    def __init__(
+            self,
+            _vehicle,
+            _bridge,
+            args_lateral,
+            args_longitudinal,
+            offset=0.0,
+            max_throttle=0.0,
+            max_brake=0.0,
+            max_steering=0.0,
+    ):
+        self.vehicle = _vehicle
         self.max_brake = max_brake
-        self.max_throt = max_throttle
+        self.max_throttle = max_throttle
         self.max_steer = max_steering
 
-        self._vehicle = vehicle
-        self._world = self._vehicle.get_world()
-        self.past_steering = self._vehicle.get_control().steer
-        self._lon_controller = PIDLongitudinalController(self._vehicle, **args_longitudinal)
-        self._lat_controller = PIDLateralController(self._vehicle, offset, **args_lateral)
+        self.steer = self.vehicle.get_control().steer
+        self._lon_controller = PIDLongitudinalController(self.vehicle, **args_longitudinal)
+        self._lat_controller = PIDLateralController(self.vehicle, offset, **args_lateral)
 
-    def run_step(self, target_speed, waypoint):
-        """
-        Execute one step of control invoking both lateral and longitudinal
-        PID controllers to reach a target waypoint
-        at a given target_speed.
-
-            :param target_speed: desired vehicle speed
-            :param waypoint: target location encoded as a waypoint
-            :return: distance (in meters) to the waypoint
-        """
-
+    def run_step(self, target_speed, waypoint, hazard_detected):
+        if hazard_detected:
+            control = self.vehicle.get_control()
+            control.throttle = 0
+            control.brake = 1
+            return
         acceleration = self._lon_controller.run_step(target_speed)
         current_steering = self._lat_controller.run_step(waypoint)
-        control = carla.VehicleControl()
+        control = self.vehicle.get_control()
         if acceleration >= 0.0:
-            control.throttle = min(acceleration, self.max_throt)
+            control.throttle = min(acceleration, self.max_throttle)
             control.brake = 0.0
         else:
             control.throttle = 0.0
@@ -77,10 +55,10 @@ class VehiclePIDController(object):
 
         # Steering regulation: changes cannot happen abruptly, can't steer too much.
 
-        if current_steering > self.past_steering + 0.1:
-            current_steering = self.past_steering + 0.1
-        elif current_steering < self.past_steering - 0.1:
-            current_steering = self.past_steering - 0.1
+        if current_steering > self.steer + 0.1:
+            current_steering = self.steer + 0.1
+        elif current_steering < self.steer - 0.1:
+            current_steering = self.steer - 0.1
 
         if current_steering >= 0:
             steering = min(self.max_steer, current_steering)
@@ -90,29 +68,12 @@ class VehiclePIDController(object):
         control.steer = steering
         control.hand_brake = False
         control.manual_gear_shift = False
-        self.past_steering = steering
+        self.steer = steering
 
         return control
 
 
-    def change_longitudinal_PID(self, args_longitudinal):
-        """Changes the parameters of the PIDLongitudinalController"""
-        self._lon_controller.change_parameters(**args_longitudinal)
-
-    def change_lateral_PID(self, args_lateral):
-        """Changes the parameters of the PIDLateralController"""
-        self._lat_controller.change_parameters(**args_lateral)
-
-    def set_offset(self, offset):
-        """Changes the offset"""
-        self._lat_controller.set_offset(offset)
-
-
 class PIDLongitudinalController():
-    """
-    PIDLongitudinalController implements longitudinal control using a PID.
-    """
-
     def __init__(self, vehicle, K_P=1.0, K_I=0.0, K_D=0.0, dt=0.03):
         """
         Constructor method.
@@ -179,7 +140,7 @@ class PIDLateralController():
     PIDLateralController implements lateral control using a PID.
     """
 
-    def __init__(self, vehicle, offset=0, K_P=1.0, K_I=0.0, K_D=0.0, dt=0.03):
+    def __init__(self, vehicle, offset=0.0, K_P=1.0, K_I=0.0, K_D=0.0, dt=0.03):
         """
         Constructor method.
 
@@ -252,6 +213,7 @@ class PIDLateralController():
             _ie = 0.0
 
         return np.clip((self._k_p * _dot) + (self._k_d * _de) + (self._k_i * _ie), -1.0, 1.0)
+
     #
     # def _pid_control(self, waypoint, vehicle_transform):
     #     """

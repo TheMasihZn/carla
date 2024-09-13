@@ -13,9 +13,8 @@ class CarlaBridge(object):
 
     # noinspection PyUnresolvedReferences
     def __init__(self):
-        self.artificial_actors = []
         self.client = carla.Client('127.0.0.1', 2000)
-        self.world = self.client.get_world()
+        self.world: carla.World = self.client.get_world()
         self.settings = self.world.get_settings()
         self.map: carla.Map = self.world.get_map()
 
@@ -36,7 +35,6 @@ class CarlaBridge(object):
 
         self.traffic_lights = TrafficLightManager(_bridge=self)
 
-        self.cars = []
         self.npc_list = []
         self.hints = []
 
@@ -44,11 +42,14 @@ class CarlaBridge(object):
                     bp: carla.ActorBlueprint,
                     point: carla.Transform,
                     attach_to=None,
-                    attachment_type=carla.AttachmentType.Rigid
+                    attachment_type=carla.AttachmentType.Rigid,
+                    destroy_at_the_end=True
                     ):
-        actor = self.world.spawn_actor(bp, point, attach_to, attachment_type)
-        self.artificial_actors.append(actor)
-        return actor
+        if destroy_at_the_end:
+            name = bp.get_attribute('role_name').as_str() + '__destroy'
+            bp.set_attribute('role_name', name)
+        point.location.z = 4.0
+        return self.world.try_spawn_actor(bp, point, attach_to, attachment_type)
 
     def get_actors(self, ids=None, filter_key=None):
         if ids:
@@ -59,17 +60,18 @@ class CarlaBridge(object):
             actors = actors.filter(filter_key)
         return list(actors)
 
-    def delete_artificial_actors(self):
-        while len(self.cars) > 0:
-            car = self.cars[0]
-            for response in self.client.apply_batch_sync(
-                    [DestroyActor(car)],
-                    True
-            ):
-                if response.error:
-                    print(response.error)
-                else:
-                    self.cars.remove(car)
+    def delete_created_actors(self):
+        while True:
+            destroy_list = [a for a in self.get_actors()
+                            if 'role_name' in a.attributes.keys()
+                            and
+                            'destroy' in a.attributes['role_name']
+                            ]
+            if len(destroy_list) == 0:
+                break
+            for actor in destroy_list:
+                if actor.is_alive:
+                    actor.destroy()
 
     def go_async(self):
         settings = self.settings
@@ -88,41 +90,16 @@ class CarlaBridge(object):
         print('sync')
 
     def spawn_teraffic(self, n_cars):
-        spawn_batch = []
-        while n_cars != 0:
+        n_spawned = 0
+        while n_spawned < n_cars:
             blueprint = random.choice(self.vehicle_blueprints)
             blueprint.set_attribute('role_name', 'npc')
-            self.spawn_actor()
             point = random.choice(self.spawn_points)
-            cmd = SpawnActor(blueprint, point).then(
-                SetAutopilot(
-                    FutureActor,
-                    True,
-                    self.traffic_manager.get_port()
-                )
-            )
-            for response in self.client.apply_batch_sync([cmd], True):
-                if not response.error:
-                    n_cars -= 1
-                    self.cars.append(self.world.get_actors().find(response.actor_id))
-
-    # def draw(self):
-    #     helper.draw_route(
-    #         waypoints=self.map.generate_waypoints(distance=2.0),
-    #         route=self.route,
-    #         all_traffic_lights=self.traffic_lights,
-    #         chosen_traffic_lights=self.target_lights
-    #     )
-
-    # noinspection PyArgumentList
-    def generate_destinations(self, start_location):
-        dest = [
-            self.map.get_waypoint(carla.Location(x=109.564789, y=44.198593, z=0.000000)).transform.location,
-            self.map.get_waypoint(carla.Location(x=109.946991, y=-13.351235, z=0.000000)).transform.location,
-            self.map.get_waypoint(carla.Location(x=34.043774, y=-67.910881, z=0.000000)).transform.location,
-            self.map.get_waypoint(carla.Location(x=-21.908228, y=-68.223061, z=0.000000)).transform.location,
-            self.map.get_waypoint(carla.Location(x=-62.118881, y=-68.641869, z=0.000000)).transform.location,
-            self.map.get_waypoint(carla.Location(x=-114.413689, y=59.960121, z=0.000000)).transform.location,
-            start_location
-        ]
-        return dest
+            try:
+                actor = self.spawn_actor(blueprint, point)
+                self.npc_list.append(actor)
+                n_spawned += 1
+            finally:
+                pass
+        for npc in self.npc_list:
+            npc.set_autopilot(True)

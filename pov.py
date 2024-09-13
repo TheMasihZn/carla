@@ -29,6 +29,7 @@ class WorldPOV(object):
         self.agent = Agent(self.player, _bridge)
         self.controller = VehiclePIDController(
             self.player,
+            _bridge=_bridge,
             args_lateral={
                 'K_P': 1.95,
                 'K_I': 0.05,
@@ -98,25 +99,11 @@ class WorldPOV(object):
                 40.0,
                 _bridge.map.get_waypoint(
                     next_dest['transform'].location
-                )
+                ),
+                False
             )
         self.player.apply_control(control)
 
         self.hud.render(self.sensor_manager.sensors)
 
         return ''
-
-    # noinspection PyArgumentList
-    def destroy(self):
-
-        destroy_list = [
-            *[sensor['actor'] for sensor in self.sensor_manager.sensors],
-            self.player]
-        while len(destroy_list) > 0:
-            for actor in destroy_list:
-                if actor is not None:
-                    done = actor.destroy()
-                    if done:
-                        destroy_list.remove(actor)
-
-        # self.router.destroy()

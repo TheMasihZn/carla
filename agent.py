@@ -1,7 +1,5 @@
 import carla
 import bridge
-from controller import VehiclePIDController
-from router import Router
 from calculation_delegate import equal
 from carla import TrafficLightState as LightState
 
