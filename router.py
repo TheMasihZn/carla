@@ -52,14 +52,13 @@ class Router(object):
         return _route
 
     @staticmethod
-    def __generate_route(_bridge, _path):
+    def __generate_route(_bridge, _path, spawn_hints=True):
         _route = []
         hint_bp = _bridge.blueprint_library.filter(
             'static.prop.ironplank'
         )[0]
         for transform in _path:
-            # hint = _bridge.world.spawn_actor(hint_bp, transform)
-            hint = None
+            hint = None if not spawn_hints else _bridge.world.spawn_actor(hint_bp, transform)
             _route.append(
                 {
                     'transform': transform,
