@@ -7,8 +7,8 @@ from agent import Agent
 
 if __name__ == '__main__':
     bridge = bridge.CarlaBridge()
-    spec: carla.Actor = bridge.world.get_spectator()
-    spec.set_transform(
+
+    bridge.spectator.set_transform(
         carla.Transform(
             carla.Location(
                 x=-70.172501,
@@ -25,6 +25,7 @@ if __name__ == '__main__':
     spawn_transform = bridge.map.get_waypoint(
         carla.Location(x=-40.08, y=140.58, z=2.0)
     ).transform
+
     spawn_transform.location.z = 2.0
 
     pov = WorldPOV(
@@ -54,4 +55,5 @@ if __name__ == '__main__':
     finally:
         pov.destroy()
         pygame.quit()
+        bridge.delete_artificial_actors()
 

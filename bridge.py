@@ -1,6 +1,6 @@
 import random
 import carla
-import calculation_delegate as helper
+from traffic_light_manager import TrafficLightManager
 
 random.seed(0)
 SpawnActor = carla.command.SpawnActor
@@ -13,17 +13,17 @@ class CarlaBridge(object):
 
     # noinspection PyUnresolvedReferences
     def __init__(self):
+        self.artificial_actors = []
         self.client = carla.Client('127.0.0.1', 2000)
         self.world = self.client.get_world()
-
         self.settings = self.world.get_settings()
         self.map: carla.Map = self.world.get_map()
 
-        self.traffic_manager = self.client.get_trafficmanager(8000)
-        self.traffic_manager.set_global_distance_to_leading_vehicle(2.5)
-        # self.traffic_manager.global_percentage_speed_difference(70.0)
-        self.traffic_manager.set_respawn_dormant_vehicles(True)
-        self.traffic_manager.set_random_device_seed(0)
+        traffic_manager = self.client.get_trafficmanager(8000)
+        traffic_manager.set_global_distance_to_leading_vehicle(2.5)
+        traffic_manager.set_respawn_dormant_vehicles(True)
+        traffic_manager.set_random_device_seed(0)
+        self.traffic_manager = traffic_manager
 
         self.spectator = self.world.get_spectator()
 
@@ -32,47 +32,34 @@ class CarlaBridge(object):
 
         self.blueprint_library = self.world.get_blueprint_library()
         _blueprints = self.blueprint_library.filter('vehicle.*')
-        self.blueprints = [x for x in _blueprints if x.get_attribute('base_type') == 'car']
+        self.vehicle_blueprints = [x for x in _blueprints if x.get_attribute('base_type') == 'car']
+
+        self.traffic_lights = TrafficLightManager(_bridge=self)
 
         self.cars = []
         self.npc_list = []
         self.hints = []
 
-        self.traffic_lights = list(self.world.get_actors().filter('traffic.traffic_light'))
+    def spawn_actor(self,
+                    bp: carla.ActorBlueprint,
+                    point: carla.Transform,
+                    attach_to=None,
+                    attachment_type=carla.AttachmentType.Rigid
+                    ):
+        actor = self.world.spawn_actor(bp, point, attach_to, attachment_type)
+        self.artificial_actors.append(actor)
+        return actor
 
-        def get_target_traffic_light_settings(settings: dict):
-            _target_lights = self.world.get_actors(list(settings.keys()))
-            for tl in _target_lights:
-                tl.set_state(settings[tl.id]['initial_state'])
-                tl.set_green_time(settings[tl.id]['green_time'])
-                tl.set_yellow_time(settings[tl.id]['yellow_time'])
-                tl.set_red_time(settings[tl.id]['red_time'])
-            return _target_lights
+    def get_actors(self, ids=None, filter_key=None):
+        if ids:
+            actors = self.world.get_actors(ids)
+        else:
+            actors = self.world.get_actors()
+        if filter_key:
+            actors = actors.filter(filter_key)
+        return list(actors)
 
-        self.target_lights = get_target_traffic_light_settings(
-            settings={
-                11: {
-                    'initial_state': carla.TrafficLightState.Red,
-                    'green_time': 10.0,
-                    'yellow_time': 5.0,
-                    'red_time': 25.0,
-                },
-                13: {
-                    'initial_state': carla.TrafficLightState.Green,
-                    'green_time': 15.0,
-                    'yellow_time': 5.0,
-                    'red_time': 20.0,
-                },
-                20: {
-                    'initial_state': carla.TrafficLightState.Red,
-                    'green_time': 12.0,
-                    'yellow_time': 4.0,
-                    'red_time': 24.0,
-                },
-            }
-        )
-
-    def reset_actors(self):
+    def delete_artificial_actors(self):
         while len(self.cars) > 0:
             car = self.cars[0]
             for response in self.client.apply_batch_sync(
@@ -103,8 +90,9 @@ class CarlaBridge(object):
     def spawn_teraffic(self, n_cars):
         spawn_batch = []
         while n_cars != 0:
-            blueprint = random.choice(self.blueprints)
-            blueprint.set_attribute('role_name', 'autopilot')
+            blueprint = random.choice(self.vehicle_blueprints)
+            blueprint.set_attribute('role_name', 'npc')
+            self.spawn_actor()
             point = random.choice(self.spawn_points)
             cmd = SpawnActor(blueprint, point).then(
                 SetAutopilot(
@@ -138,11 +126,3 @@ class CarlaBridge(object):
             start_location
         ]
         return dest
-
-    def __delete__(self, instance):
-        self.reset_actors()
-        # self.destroy_hints()
-
-        # spawn_teaffic(n_cars=20)
-
-        # draw_route(route)

@@ -22,9 +22,6 @@ class SensorManager(object):
         bound_y = 0.5 + self._player.bounding_box.extent.y
         bound_z = 0.5 + self._player.bounding_box.extent.z
 
-        # bound_x = 1.0
-        # bound_y = 1.0
-        # bound_z = 1.0
         self.sensors = [
             {
                 'name': 'Camera RGB',
@@ -75,11 +72,12 @@ class SensorManager(object):
             elif 'lidar' in sensor_data['id']:
                 sensor_bp.set_attribute('range', '50')
 
-            actor = self._player.get_world().spawn_actor(
+            actor = _bridge.spawn_actor(
                 sensor_bp,
                 sensor_data['transform'],
                 attach_to=self._player,
-                attachment_type=sensor_data['attachment'])
+                attachment_type=sensor_data['attachment']
+            )
 
             # separate every type of sensor deta
             if 'camera' in sensor_data['id']:

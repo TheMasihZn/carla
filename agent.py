@@ -7,6 +7,7 @@ from carla import TrafficLightState as LightState
 
 
 class Agent(object):
+    # noinspection PyArgumentList
     def __init__(
             self,
             vehicle: carla.Vehicle,
@@ -14,16 +15,19 @@ class Agent(object):
     ):
         self.npc_list = _bridge.npc_list
         self.target_speed = 40
-        self.safe_distance = 5.0  # meters
-
-    def stop_in(self, distance: float = 0.0) -> carla.VehicleControl:
+        self.safe_distance = 5.0
         control = carla.VehicleControl()
         control.steer = 0.0
         control.throttle = 0.0
         control.brake = 1.0
         control.hand_brake = False
         control.manual_gear_shift = False
-        return control
+        self.control = control
+
+    def stop_in(self, distance: float = 0.0):
+        self.control.throttle = 0.0
+        self.control.brake = 1.0
+        self.control.hand_brake = (self.safe_distance > distance)
 
     # detect if there is a hazard
     def detect_hazard(self, predict_transform):

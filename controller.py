@@ -9,10 +9,14 @@ from collections import deque
 import math
 import numpy as np
 import carla
-from misc import get_speed
 
 
-class VehiclePIDController():
+def get_speed(vehicle):
+    v = vehicle.get_velocity()
+    return 3.6 * math.sqrt(v.x ** 2 + v.y ** 2 + v.z ** 2)
+
+
+class VehiclePIDController(object):
     """
     VehiclePIDController is the combination of two PID controllers
     (lateral and longitudinal) to perform the

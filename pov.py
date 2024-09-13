@@ -1,8 +1,8 @@
 import carla
 import bridge
+import random
 from sensor_manager import SensorManager
 from hud import HUD
-import random
 from agent import Agent
 from router import Router
 from controller import VehiclePIDController
@@ -18,8 +18,6 @@ class WorldPOV(object):
             size: dict
     ):
         self.hud = HUD(size['height'], size['width'])
-        self._weather_index = 0
-        self.target_lights = _bridge.target_lights
 
         self.player: carla.Vehicle = self.__spawn_hero(
             _bridge,
@@ -56,10 +54,10 @@ class WorldPOV(object):
     ) -> carla.Actor:
         if self:
             pass
-        hero_bp = random.choice(_bridge.blueprints)
+        hero_bp = random.choice(_bridge.vehicle_blueprints)
         hero_bp.set_attribute('role_name', 'hero')
 
-        hero = _bridge.world.spawn_actor(hero_bp, _spawn_point)
+        hero = _bridge.spawn_actor(hero_bp, _spawn_point)
 
         physics_control = hero.get_physics_control()
         physics_control.use_sweep_wheel_collision = True
@@ -74,7 +72,7 @@ class WorldPOV(object):
             self.player.get_transform(),
             self.player.get_velocity(),
             self.player.get_control(),
-            self.target_lights
+            _bridge.traffic_lights.targets
         )
 
         if self.hud.return_key_pressed():
