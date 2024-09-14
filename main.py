@@ -41,8 +41,8 @@ if __name__ == '__main__':
         #
         # agent = Agent(pov.player, _bridge=bridge)
 
-        while True:
-            bridge.world.wait_for_tick()
+        # while True:
+        #     bridge.world.wait_for_tick()
         #
         #     if 'break' in pov.on_tick(bridge):
         #         break
