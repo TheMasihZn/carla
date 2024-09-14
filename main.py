@@ -30,22 +30,22 @@ if __name__ == '__main__':
 
     try:
         bridge.spawn_teraffic(40)
-        # pov = WorldPOV(
-        #     _spawn_transform=spawn_transform,
-        #     _bridge=bridge,
-        #     size={
-        #         'width': 480,
-        #         'height': 720,
-        #     }
-        # )
-        #
-        # agent = Agent(pov.player, _bridge=bridge)
+        pov = WorldPOV(
+            _spawn_transform=spawn_transform,
+            _bridge=bridge,
+            size={
+                'width': 480,
+                'height': 720,
+            }
+        )
 
-        # while True:
-        #     bridge.world.wait_for_tick()
-        #
-        #     if 'break' in pov.on_tick(bridge):
-        #         break
+        agent = Agent(pov.player, _bridge=bridge)
+
+        while True:
+            bridge.world.wait_for_tick()
+
+            if 'break' in pov.on_tick(bridge):
+                break
 
     except KeyboardInterrupt:
         pass
