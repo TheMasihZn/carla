@@ -88,11 +88,8 @@ class WorldPOV(object):
         hazard_distance = self.agent.detect_hazard(
             next_dest['transform'].location
         )
-        if (not control) and hazard_distance:
-            control = self.agent.stop_in(hazard_distance)
 
-        if (not control) and self.agent.traffic_light_stop(self.player):
-            control = self.agent.stop_in(self.agent.traffic_light_stop(self.player))
+        traffic_light_distance = self.agent.traffic_light_detected(self.player)
 
         if not control:
             control = self.controller.run_step(
@@ -100,7 +97,7 @@ class WorldPOV(object):
                 _bridge.map.get_waypoint(
                     next_dest['transform'].location
                 ),
-                False
+                hazard_distance + traffic_light_distance
             )
         self.player.apply_control(control)
 

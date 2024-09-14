@@ -42,7 +42,7 @@ class Agent(object):
                 )
         return False
 
-    def traffic_light_stop(self, vehicle):
+    def traffic_light_detected(self, vehicle):
         if vehicle.is_at_traffic_light():
             if vehicle.get_traffic_light_state() == LightState.Red:
                 return self.safe_distance

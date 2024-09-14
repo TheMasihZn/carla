@@ -48,8 +48,8 @@ class CarlaBridge(object):
         if destroy_at_the_end:
             name = bp.get_attribute('role_name').as_str() + '__destroy'
             bp.set_attribute('role_name', name)
-        point.location.z = 4.0
-        return self.world.try_spawn_actor(bp, point, attach_to, attachment_type)
+        # point.location.z = 4.0
+        return self.world.spawn_actor(bp, point, attach_to, attachment_type)
 
     def get_actors(self, ids=None, filter_key=None):
         if ids:
@@ -90,16 +90,18 @@ class CarlaBridge(object):
         print('sync')
 
     def spawn_teraffic(self, n_cars):
-        n_spawned = 0
-        while n_spawned < n_cars:
-            blueprint = random.choice(self.vehicle_blueprints)
-            blueprint.set_attribute('role_name', 'npc')
-            point = random.choice(self.spawn_points)
+        while len(self.npc_list) < n_cars:
             try:
+                blueprint = random.choice(self.vehicle_blueprints)
+                blueprint.set_attribute('role_name', 'npc')
+                point = random.choice(self.spawn_points)
                 actor = self.spawn_actor(blueprint, point)
                 self.npc_list.append(actor)
-                n_spawned += 1
-            finally:
-                pass
+
+            except Exception as e:
+                if 'collision' not in str(e):
+                    print(e)
+
         for npc in self.npc_list:
             npc.set_autopilot(True)
+        print(f'spawned {n_cars} NPCs')
