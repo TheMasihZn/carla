@@ -29,7 +29,7 @@ if __name__ == '__main__':
     spawn_transform.location.z = 2.0
 
     try:
-        bridge.spawn_teraffic(40)
+        # bridge.spawn_teraffic(40)
         pov = WorldPOV(
             _spawn_transform=spawn_transform,
             _bridge=bridge,
@@ -49,6 +49,8 @@ if __name__ == '__main__':
 
     except KeyboardInterrupt:
         pass
+    except Exception as e:
+        print(e)
     finally:
         pygame.quit()
         print('destroying actors...')

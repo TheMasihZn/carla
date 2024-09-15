@@ -7,10 +7,10 @@ from calculation_delegate import equal
 
 
 class Router(object):
-    def __init__(self, _bridge: bridge.CarlaBridge):
+    def __init__(self, _bridge: bridge.CarlaBridge, spawn_hints: bool):
         self.path = self.__read_path_from_file(_bridge)
         self.path_taken = []
-        self.route = self.__generate_route(_bridge, self.path)
+        self.route = self.__generate_route(_bridge, self.path, spawn_hints)
         self.traffic_lights = _bridge.traffic_lights
 
     def on_tick(self, _vehicle_transform: carla.Transform):
@@ -33,6 +33,11 @@ class Router(object):
             return None
         return self.route[0]
 
+    def next_10(self):
+        if not self.route:
+            return None
+        return self.route[0:10]
+
     def destroy(self):
         for route in self.route:
             if route['hint']:
@@ -51,7 +56,7 @@ class Router(object):
         return _route
 
     @staticmethod
-    def __generate_route(_bridge, _path, spawn_hints=True):
+    def __generate_route(_bridge, _path, spawn_hints):
         _route = []
         hint_bp = _bridge.blueprint_library.filter(
             'static.prop.ironplank'

@@ -30,12 +30,12 @@ class VehiclePIDController(object):
         self._lon_controller = PIDLongitudinalController(self.vehicle, **args_longitudinal)
         self._lat_controller = PIDLateralController(self.vehicle, offset, **args_lateral)
 
-    def run_step(self, target_speed, waypoint, hazard_detected):
-        if hazard_detected:
+    def run_step(self, target_speed, waypoint, distance_to_stop_in):
+        if distance_to_stop_in:
             control = self.vehicle.get_control()
             control.throttle = 0
             control.brake = 1
-            return
+            return control
         acceleration = self._lon_controller.run_step(target_speed)
         current_steering = self._lat_controller.run_step(waypoint)
         control = self.vehicle.get_control()
