@@ -94,7 +94,7 @@ class CarlaBridge(object):
             try:
                 blueprint = random.choice(self.vehicle_blueprints)
                 blueprint.set_attribute('role_name', 'npc')
-                #retry until a good spawn point
+                # retry until a good spawn point
                 while True:
                     point = random.choice(self.spawn_points)
                     actor = self.spawn_actor(blueprint, point)

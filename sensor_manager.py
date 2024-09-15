@@ -58,7 +58,7 @@ class SensorManager(object):
                 'attachment': AttachmentType.Rigid,
                 'data': None,
                 'actor': None
-            }
+            },
         ]
         self.__spawn_sensors(_bridge)
 

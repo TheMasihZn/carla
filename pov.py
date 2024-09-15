@@ -25,7 +25,7 @@ class WorldPOV(object):
         )
         self.sensor_manager = SensorManager(_bridge, self.player, size)
 
-        self.router = Router(_bridge)
+        self.router = Router(_bridge, spawn_hints=False)
         self.agent = Agent(self.player, _bridge)
         self.controller = VehiclePIDController(
             self.player,
@@ -81,24 +81,27 @@ class WorldPOV(object):
 
         self.router.on_tick(self.player.get_transform())
         next_dest = self.router.next_destination()
+
         if not next_dest:
             return 'break'
 
-        control = None
-        hazard_distance = self.agent.detect_hazard(
-            next_dest['transform'].location
+        next_3_waypoints = [
+            _bridge.map.get_waypoint(
+                step['transform'].location
+            ) for step in self.router.next_n(n=3)
+        ]
+        distance_to_stop_in = False
+        # distance_to_stop_in = self.agent.should_stop(
+        #     next_3_waypoints
+        # )
+
+        control = self.controller.run_step(
+            40.0,
+            _bridge.map.get_waypoint(
+                next_dest['transform'].location
+            ),
+            distance_to_stop_in
         )
-
-        traffic_light_distance = self.agent.traffic_light_detected(self.player)
-
-        if not control:
-            control = self.controller.run_step(
-                40.0,
-                _bridge.map.get_waypoint(
-                    next_dest['transform'].location
-                ),
-                hazard_distance + traffic_light_distance
-            )
         self.player.apply_control(control)
 
         self.hud.render(self.sensor_manager.sensors)

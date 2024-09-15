@@ -3,24 +3,24 @@ import csv
 import matplotlib.pyplot as plt
 
 import bridge
-from calculation_delegate import equal
+from calculation_delegate import location_equal
 
 
 class Router(object):
-    def __init__(self, _bridge: bridge.CarlaBridge):
+    def __init__(self, _bridge: bridge.CarlaBridge, spawn_hints: bool):
         self.path = self.__read_path_from_file(_bridge)
         self.path_taken = []
-        self.route = self.__generate_route(_bridge, self.path)
+        self.route = self.__generate_route(_bridge, self.path, spawn_hints)
         self.traffic_lights = _bridge.traffic_lights
 
     def on_tick(self, _vehicle_transform: carla.Transform):
         if _vehicle_transform not in self.path_taken:
             self.path_taken.append(_vehicle_transform)
         for step in self.route:
-            if equal(
+            if location_equal(
                     step['transform'].location,
                     _vehicle_transform.location,
-                    3
+                    1.5
             ):
                 self.route.remove(step)
                 if step['hint']:
@@ -32,6 +32,11 @@ class Router(object):
         if not self.route:
             return None
         return self.route[0]
+
+    def next_n(self, n=1):
+        if not self.route:
+            return None
+        return self.route[0:n]
 
     def destroy(self):
         for route in self.route:
@@ -51,7 +56,7 @@ class Router(object):
         return _route
 
     @staticmethod
-    def __generate_route(_bridge, _path, spawn_hints=True):
+    def __generate_route(_bridge, _path, spawn_hints):
         _route = []
         hint_bp = _bridge.blueprint_library.filter(
             'static.prop.ironplank'
