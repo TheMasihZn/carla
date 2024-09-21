@@ -10,7 +10,6 @@ import bridge
 
 class SensorManager(object):
 
-    # noinspection PyArgumentList
     def __init__(self, _bridge: bridge.CarlaBridge, player, window_size: dict):
         self.surface = None
         self._player = player
@@ -32,7 +31,7 @@ class SensorManager(object):
                     y=+0.0 * bound_y,
                     z=+2.0 * bound_z
                 ), carla.Rotation(pitch=8.0)),
-                'attachment': AttachmentType.SpringArmGhost,
+                'attachment': AttachmentType.SpringArm,
                 'data': None,
                 'actor': None,
                 'n_updates': 0

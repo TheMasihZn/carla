@@ -31,7 +31,7 @@ class CarlaBridge(object):
 
         self.blueprint_library = self.world.get_blueprint_library()
         _blueprints = self.blueprint_library.filter('vehicle.*')
-        self.vehicle_blueprints = [x for x in _blueprints if x.get_attribute('base_type') == 'car']
+        self.vehicle_blueprints = [bp for bp in _blueprints if 'vehicle' in bp.tags]
 
         self.traffic_lights = TrafficLightManager(_bridge=self)
 
