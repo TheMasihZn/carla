@@ -71,6 +71,8 @@ class CarlaBridge(object):
                 if actor.is_alive:
                     actor.destroy()
 
+            self.world.wait_for_tick()
+
     def go_async(self):
         settings = self.settings
         settings.synchronous_mode = False

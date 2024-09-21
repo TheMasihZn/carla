@@ -1,8 +1,10 @@
 import math
+import queue
+import threading
 
 import numpy as np
 import pygame
-from pygame.locals import (KMOD_CTRL, K_ESCAPE, K_q)
+from pygame.locals import (KMOD_CTRL, K_ESCAPE, K_q, K_c, WINDOWMOVED)
 
 
 class HUD(object):
@@ -17,9 +19,14 @@ class HUD(object):
             (width, height),
             pygame.HWSURFACE | pygame.DOUBLEBUF
         )
+        self.thread_wait = False
+        self.stop_signal = False
+        self.event_thread = threading.Thread(target=self.thread_worker)
+
         pygame.display.set_caption('Hero POV')
         pygame.init()
         pygame.font.init()
+        self.event_thread.start()
 
     def set_text_for_tick(
             self,
@@ -90,20 +97,28 @@ class HUD(object):
             v_offset += 18
         pygame.display.flip()
 
-    # self._notifications.render(self.display)
-    # self.help.render(self.display)
+    def thread_worker(self):
+        while True:
+            if self.stop_signal:
+                break
+            if self.thread_wait:
+                continue
 
-    @staticmethod
-    def return_key_pressed():
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                return True
+            self.thread_wait = True
+            events = pygame.event.get()
+            for event in events:
+                if event.type == pygame.QUIT:
+                        self.close()
+                # elif pygame.key.get_mods() & KMOD_CTRL:
+                #     if event.key == K_q or event.key == K_c:
+                #         self.stop_signal = True
+                #         self.event_queue.put(None)
 
-            if event.type == pygame.KEYUP:
-                if (
-                        (event.key == K_ESCAPE)
-                        or
-                        (event.key == K_q and pygame.key.get_mods() & KMOD_CTRL)
-                ):
-                    return True
 
+    def on_tick(self):
+        pygame.event.pump()
+        self.thread_wait = False
+
+    def close(self):
+        if not self.stop_signal:
+            self.stop_signal = True

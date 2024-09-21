@@ -47,8 +47,8 @@ class POV(object):
             self.player.get_control(),
             self.traffic_light_manager.targets
         )
-
-        if self.hud.return_key_pressed():
+        self.hud.on_tick()
+        if self.hud.stop_signal:
             return 'break'
 
         self.router.on_tick(self.player.get_transform())
@@ -79,3 +79,6 @@ class POV(object):
         self.hud.render(self.sensor_manager.sensors)
 
         return ''
+
+    def close(self):
+        self.hud.close()

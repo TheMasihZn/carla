@@ -68,6 +68,7 @@ if __name__ == '__main__':
     ).transform
     spawn_transform.location.z = 2.0
 
+    pov = None
     try:
 
         ego = spawn_hero(
@@ -144,6 +145,8 @@ if __name__ == '__main__':
     except Exception as e:
         print(e)
     finally:
+        if pov:
+            pov.close()
         pygame.quit()
         print('destroying actors...')
         bridge.delete_created_actors()
