@@ -8,11 +8,11 @@ class Agent(object):
     # noinspection PyArgumentList
     def __init__(
             self,
-            vehicle: carla.Vehicle,
-            _bridge: bridge.CarlaBridge
+            _npc_list,
+            _traffic_light_manager
     ):
-        self.npc_list = _bridge.npc_list
-        self.traffic_lights = _bridge.traffic_lights
+        self.npc_list = _npc_list
+        self.traffic_lights = _traffic_light_manager
         self.target_speed = 40
         self.safe_distance = 5.0
 

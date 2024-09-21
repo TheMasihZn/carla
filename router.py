@@ -7,11 +7,10 @@ from calculation_delegate import location_equal
 
 
 class Router(object):
-    def __init__(self, _bridge: bridge.CarlaBridge, spawn_hints: bool):
-        self.path = self.__read_path_from_file(_bridge)
+    def __init__(self, _bridge: bridge.CarlaBridge, route_file_path: str, spawn_hints: bool):
+        self.path = self.__read_path_from_file(_bridge, route_file_path)
         self.path_taken = []
         self.route = self.__generate_route(_bridge, self.path, spawn_hints)
-        self.traffic_lights = _bridge.traffic_lights
 
     def on_tick(self, _vehicle_transform: carla.Transform):
         if _vehicle_transform not in self.path_taken:
@@ -46,9 +45,12 @@ class Router(object):
 
     # noinspection PyTypeChecker
     @staticmethod
-    def __read_path_from_file(_bridge: bridge.CarlaBridge):
+    def __read_path_from_file(
+            _bridge: bridge.CarlaBridge,
+            route_file_path: str
+    ) -> list:
         _route = []
-        for line in csv.DictReader(open('route.csv', 'r')):
+        for line in csv.DictReader(open(route_file_path, 'r')):
             rotation = carla.Rotation(float(line['pitch']), float(line['yaw']), float(line['roll']))
             location = carla.Location(float(line['x']), float(line['y']), float(line['z']))
             transform = carla.Transform(location, rotation)

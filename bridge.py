@@ -33,8 +33,6 @@ class CarlaBridge(object):
         _blueprints = self.blueprint_library.filter('vehicle.*')
         self.vehicle_blueprints = [bp for bp in _blueprints if 'vehicle' in bp.tags]
 
-        self.traffic_lights = TrafficLightManager(_bridge=self)
-
         self.npc_list = []
         self.hints = []
 

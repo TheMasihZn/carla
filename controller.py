@@ -14,8 +14,6 @@ class VehiclePIDController(object):
             self,
             _vehicle,
             _bridge,
-            args_lateral,
-            args_longitudinal,
             offset=0.0,
             max_throttle=0.0,
             max_brake=0.0,
@@ -27,8 +25,18 @@ class VehiclePIDController(object):
         self.max_steer = max_steering
 
         self.steer = self.vehicle.get_control().steer
-        self._lon_controller = PIDLongitudinalController(self.vehicle, **args_longitudinal)
-        self._lat_controller = PIDLateralController(self.vehicle, offset, **args_lateral)
+        self._lon_controller = PIDLongitudinalController(self.vehicle, **{
+            'K_P': 1.0,
+            'K_I': 0.05,
+            'K_D': 0.0,
+            'dt': 0.0
+        })
+        self._lat_controller = PIDLateralController(self.vehicle, offset, **{
+            'K_P': 1.95,
+            'K_I': 0.05,
+            'K_D': 0.2,
+            'dt': 0.0
+        })
 
     def run_step(self, target_speed, waypoint, distance_to_stop_in):
         if distance_to_stop_in:

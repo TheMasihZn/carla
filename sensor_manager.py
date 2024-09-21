@@ -1,64 +1,25 @@
-import weakref
-import pygame
 import numpy as np
 import carla
-from carla import AttachmentType
-from carla import ColorConverter
 
 import bridge
 
 
 class SensorManager(object):
 
-    def __init__(self, _bridge: bridge.CarlaBridge, player, window_size: dict):
+    # noinspection PyArgumentList
+    def __init__(
+            self,
+            _bridge: bridge.CarlaBridge,
+            player: carla.Vehicle,
+            sensors: list,
+            window_size: dict
+    ):
         self.surface = None
         self._player = player
         self.width = window_size['width']
         self.height = window_size['height']
 
-        # todo fix bounding box
-        bound_x = 0.5 + self._player.bounding_box.extent.x
-        bound_y = 0.5 + self._player.bounding_box.extent.y
-        bound_z = 0.5 + self._player.bounding_box.extent.z
-
-        self.sensors = [
-            {
-                'name': 'Camera RGB',
-                'id': 'sensor.camera.rgb',
-                'convertion_methode': ColorConverter.Raw,
-                'transform': carla.Transform(carla.Location(
-                    x=-2.0 * bound_x,
-                    y=+0.0 * bound_y,
-                    z=+2.0 * bound_z
-                ), carla.Rotation(pitch=8.0)),
-                'attachment': AttachmentType.SpringArm,
-                'data': None,
-                'actor': None,
-                'n_updates': 0
-            },
-            {
-                'name': 'Lidar (Ray-Cast)',
-                'id': 'sensor.lidar.ray_cast',
-                'convertion_methode': None,
-                'transform': carla.Transform(carla.Location(
-                    x=-1.0,
-                    y=-1.0 * bound_y,
-                    z=+0.4 * bound_z
-                ), carla.Rotation()),
-                'attachment': AttachmentType.Rigid,
-                'data': None,
-                'actor': None
-            },
-            {
-                'name': 'Lane Invasion',
-                'id': 'sensor.other.lane_invasion',
-                'convertion_methode': None,
-                'transform': carla.Transform(carla.Location(), carla.Rotation()),
-                'attachment': AttachmentType.Rigid,
-                'data': None,
-                'actor': None
-            },
-        ]
+        self.sensors = sensors
         self.__spawn_sensors(_bridge)
 
     def __spawn_sensors(self, _bridge: bridge.CarlaBridge):
