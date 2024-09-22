@@ -1,6 +1,5 @@
 import random
 import carla
-from traffic_light_manager import TrafficLightManager
 
 random.seed(0)
 SpawnActor = carla.command.SpawnActor

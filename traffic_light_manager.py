@@ -2,13 +2,16 @@ import carla
 import bridge
 
 
-class TrafficLightManager(object):
+class TrafficLights(object):
     def __init__(self, _bridge, _initial_settings):
         self.settings = _initial_settings
         self.all = _bridge.get_actors(filter_key='traffic.traffic_light')
-        self.targets = _bridge.get_actors(ids=list(self.settings.keys()))
-        for tl in self.targets:
-            tl.set_state(self.settings[tl.id]['initial_state'])
-            tl.set_green_time(self.settings[tl.id]['green_time'])
-            tl.set_yellow_time(self.settings[tl.id]['yellow_time'])
-            tl.set_red_time(self.settings[tl.id]['red_time'])
+        self.targets = []
+        # iterating dict gives keys
+        for i in self.settings:
+            actor = _bridge.get_actors(ids=[i])[0]
+            actor.set_state(self.settings[i]['initial_state'])
+            actor.set_green_time(self.settings[i]['green_time'])
+            actor.set_yellow_time(self.settings[i]['yellow_time'])
+            actor.set_red_time(self.settings[i]['red_time'])
+            self.targets.append(actor)

@@ -6,7 +6,7 @@ from hud import HUD
 from agent import Agent
 from router import Router
 from controller import VehiclePIDController
-from traffic_light_manager import TrafficLightManager
+from traffic_light_manager import TrafficLights
 
 random.seed(0)
 
@@ -19,7 +19,7 @@ class POV(object):
             _router: Router,
             _player: carla.Vehicle,
             _sensor_list: list,
-            _traffic_light_manager: TrafficLightManager,
+            _traffic_light_manager: TrafficLights,
             _window_size: dict
     ):
         self.hud = HUD(_window_size['height'], _window_size['width'])
@@ -45,7 +45,7 @@ class POV(object):
             self.player.get_transform(),
             self.player.get_velocity(),
             self.player.get_control(),
-            self.traffic_light_manager.targets
+            self.traffic_light_manager
         )
         self.hud.on_tick()
         if self.hud.stop_signal:

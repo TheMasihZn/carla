@@ -7,7 +7,7 @@ from numpy import random
 from router import Router
 from pov import POV
 from sensor_manager import SensorManager
-from traffic_light_manager import TrafficLightManager
+from traffic_light_manager import TrafficLights
 
 
 def spawn_hero(
@@ -130,7 +130,7 @@ if __name__ == '__main__':
             _router=Router(bridge, route_file_path='route.csv', spawn_hints=False),
             _player=ego,
             _sensor_list=sensor_list,
-            _traffic_light_manager=TrafficLightManager(_bridge=bridge, _initial_settings=traffic_light_settings),
+            _traffic_light_manager=TrafficLights(_bridge=bridge, _initial_settings=traffic_light_settings),
             _window_size=window_size
         )
 
