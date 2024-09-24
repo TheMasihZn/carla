@@ -3,7 +3,7 @@ import csv
 import matplotlib.pyplot as plt
 
 from bridge import CarlaBridge
-from calculation_delegate import location_equal
+from calculation_delegate import location_equal, distance_in_route
 
 
 class Router(object):
@@ -12,6 +12,7 @@ class Router(object):
         self.path = self.__read_path_from_file(route_file_path, route_z)
         self.last_transform = self.path[0]
         self.route = []
+        self.__current_index_in_route = 0
         self.__header = 0
         self.__last_hint_index = 0
         self.update_cache_route()
@@ -26,6 +27,8 @@ class Router(object):
                     1.5
             ):
                 self.route.remove(step)
+                self.__current_index_in_route += 1
+                self.__current_index_in_route %= len(self.path)
             else:
                 break
         self.update_cache_route()
@@ -52,6 +55,9 @@ class Router(object):
         for transform in self.path[self.__header:self.__header + (len(self.route) - n_batch)]:
             self.route.append(transform)
         self.__header += len(self.route) - n_batch
+
+    def distance_to_(self, i_in_path) -> float:
+        return distance_in_route(self.__current_index_in_route, i_in_path, self.path)
 
     def draw_path(self, waypoints, start_transform, traffic_lights=None):
         plt.figure(figsize=(7, 7))
@@ -92,13 +98,6 @@ class Router(object):
         plt.ylabel("Y")
         plt.show()
 
-    def distance_in_route(self, l1: carla.Location, l2: carla.Location) -> float:
-        d = 0.0
-        for transform in self.path:
-            if location_equal()
-
-        return d
-
     def draw_hints(self, _car, _bridge,
                    _color=carla.Color(r=0, g=125, b=125, a=125)
                    ):
@@ -121,3 +120,14 @@ class Router(object):
             life_time=_bridge.settings.max_substep_delta_time
         )
         _bridge.last_hint = _path[-2]
+
+    def get_i_in_path(self, actor_location: carla.Location) -> int:
+        for i, step in enumerate(self.path):
+            if location_equal(step.location, actor_location, 5):
+                return i
+
+        raise Exception(
+            "actor location not in path"
+            + "\nif you're sure it is, it's because of unreliable id assignment"
+            + "\n(restart simulator server)"
+        )

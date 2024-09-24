@@ -42,7 +42,11 @@ class POV(object):
 
     # noinspection PyArgumentList
     def on_tick(self, _bridge: CarlaBridge):
+
         self.car.update_parameters()
+        self.router.on_tick(self.car.transform)
+        self.traffic_light_manager.update_distances(self.router)
+        next_dest = self.router.next_destination()
 
         self.hud.update_text(
             self.sensor_manager.sensors,
@@ -53,9 +57,6 @@ class POV(object):
         self.hud.on_tick()
         if self.hud.stop_signal:
             return 'break'
-
-        self.router.on_tick(self.car.transform)
-        next_dest = self.router.next_destination()
 
         # self.router.draw_hints(self.car, _bridge)
 

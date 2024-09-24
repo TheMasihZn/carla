@@ -1,3 +1,5 @@
+import math
+
 import carla
 
 
@@ -21,12 +23,26 @@ def rotation_equal(a: carla.Rotation, b: carla.Rotation, rotation_threshold=30):
 
 def distance_in_route(
         _l1_index_in_path: int,
-        _li_index_in_path: int,
-        _path: list) -> float:
+        _l2_index_in_path: int,
+        _path: list
+) -> float:
+    _route = []
+    if _l1_index_in_path < _l2_index_in_path:
+        _route = _path[_l1_index_in_path: _l2_index_in_path]
+    elif _l1_index_in_path == _l2_index_in_path:
+        _route = _path
+    else:
+        _route = _path[_l1_index_in_path:]
+        _route.extend(_path[:_l2_index_in_path])
     d = 0.0
-    for transform in self.path:
-        if location_equal()
-
+    for i in range(len(_route) - 1):
+        l1 = _route[i].location
+        l2 = _route[i + 1].location
+        d += math.sqrt(
+            (l1.x - l2.x) ** 2
+            +
+            (l1.y - l2.y) ** 2
+        )
     return d
 
 

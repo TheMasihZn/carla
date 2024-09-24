@@ -1,5 +1,8 @@
 import carla
+
+import traffic_light_manager
 from calculation_delegate import location_equal
+
 
 class Agent(object):
     # noinspection PyArgumentList
@@ -34,20 +37,13 @@ class Agent(object):
                 )
         return False
 
-    def __traffic_light_distance(self, reference_waypoint):
-        in_vicinity = [
-            tl for tl in self.traffic_lights.all
-            if location_equal(
-                tl.get_transform().location,
-                reference_waypoint.transform.location,
-                location_threshold=3 * self.safe_distance
-            )
-        ]
-        for tl in in_vicinity:
-            if reference_waypoint.lane_id() in [wp.lane_id for wp in tl.get_affected_lane_waypoints()]:
-                if tl.get_state() == carla.TrafficLightState.Red:
-                    if (tl.get_red_time() - tl.get_elapsed_time()) > (self.safe_distance / self.target_speed):
-                        return self.safe_distance
+    def __traffic_light_distance(
+            self,
+            _tl_manager: traffic_light_manager.TrafficLights,
+            reference_waypoint):
+        d = min(_tl_manager.distance_to_targets)
+        if d < self.safe_distance * 4:
+            return d
 
         return False
 

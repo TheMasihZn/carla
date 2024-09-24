@@ -79,29 +79,38 @@ class HUD(object):
                 item = None
                 v_offset += 18
             elif isinstance(item, tuple):
+                box_dim = 6
                 if isinstance(item[1], bool):
-                    rect = pygame.Rect((bar_h_offset, v_offset + 8), (6, 6))
+                    rect = pygame.Rect((bar_h_offset, v_offset + 8), (box_dim, box_dim))
                     pygame.draw.rect(self.display, (255, 255, 255), rect, 0 if item[1] else 1)
                 elif isinstance(item[1], traffic_light_manager.TrafficLights):
-                    for light in item[1].targets:
-                        rect = pygame.Rect((bar_h_offset, v_offset + 8), (6, 6))
+                    dist_light_zip = sorted(
+                        zip(
+                            item[1].distance_to_targets,
+                            item[1].targets
+                        ),
+                        key=lambda tup: tup[0])
+                    for distance, light in dist_light_zip:
+                        rect = pygame.Rect((bar_h_offset, v_offset), (box_dim, box_dim))
                         pygame.draw.rect(self.display, light.get_state().__str__(), rect, 0 if item[1] else 1)
+                        text = self.font.render("id: %3i  in % 5.0f m" % (light.id, distance), True, (255, 255, 255))
+                        self.display.blit(text, (bar_h_offset + 8 + box_dim, v_offset - 3))
                         v_offset += 18
-                    v_offset -= len(item[1].targets) * 16
+                    v_offset -= (len(item[1].targets) * 18) + (box_dim // 2)
                 else:
-                    rect_border = pygame.Rect((bar_h_offset, v_offset + 8), (bar_width, 6))
+                    rect_border = pygame.Rect((bar_h_offset, v_offset + 8), (bar_width, box_dim))
                     pygame.draw.rect(self.display, (255, 255, 255), rect_border, 1)
                     fig = (item[1] - item[2]) / (item[3] - item[2])
                     if item[2] < 0.0:
                         rect = pygame.Rect(
-                            (bar_h_offset + fig * (bar_width - 6), v_offset + 8), (6, 6))
+                            (bar_h_offset + fig * (bar_width - box_dim), v_offset + 8), (box_dim, box_dim))
                     else:
-                        rect = pygame.Rect((bar_h_offset, v_offset + 8), (fig * bar_width, 6))
+                        rect = pygame.Rect((bar_h_offset, v_offset + 8), (fig * bar_width, box_dim))
                     pygame.draw.rect(self.display, (255, 255, 255), rect)
                 item = item[0]
             if item:  # At this point has to be a str.
-                surface = self.font.render(item, True, (255, 255, 255))
-                self.display.blit(surface, (8, v_offset))
+                text = self.font.render(item, True, (255, 255, 255))
+                self.display.blit(text, (8, v_offset))
             v_offset += 18
         pygame.display.flip()
 

@@ -44,7 +44,13 @@ if __name__ == '__main__':
         )
     )
 
-    traffic_light_settings = {
+    # bridge.spectator.set_transform(
+    #     carla.Transform(
+    #         carla.Location(x=-31.930841, y=20.301954, z=0.254254)
+    #     )
+    # )
+
+    traffic_lights = {
         11: {
             'initial_state': carla.TrafficLightState.Red,
             'green_time': 10.0,
@@ -118,13 +124,14 @@ if __name__ == '__main__':
             'height': 720,
         }
 
+        router = Router(bridge, route_file_path='route.csv', spawn_hints=False)
         pov = POV(
             _spawn_transform=spawn_transform,
             _bridge=bridge,
-            _router=Router(bridge, route_file_path='route.csv', spawn_hints=False),
+            _router=router,
             _car=ego,
             _sensor_list=sensor_list,
-            _traffic_light_manager=TrafficLights(_bridge=bridge, _initial_settings=traffic_light_settings),
+            _traffic_light_manager=TrafficLights(_bridge=bridge, _router=router, _initial_settings=traffic_lights),
             _window_size=window_size
         )
 
