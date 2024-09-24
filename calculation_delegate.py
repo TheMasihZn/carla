@@ -19,6 +19,17 @@ def rotation_equal(a: carla.Rotation, b: carla.Rotation, rotation_threshold=30):
     return result
 
 
+def distance_in_route(
+        _l1_index_in_path: int,
+        _li_index_in_path: int,
+        _path: list) -> float:
+    d = 0.0
+    for transform in self.path:
+        if location_equal()
+
+    return d
+
+
 def transform_equal(a: carla.Transform,
                     b: carla.Transform,
                     location_threshold=1,

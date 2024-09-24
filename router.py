@@ -92,12 +92,12 @@ class Router(object):
         plt.ylabel("Y")
         plt.show()
 
-    # def distance_in_route(self, l1: carla.Location, l2: carla.Location) -> float:
-    #     d = 0
-    #     for transform in self.path:
-    #
-    #
-    #     return d
+    def distance_in_route(self, l1: carla.Location, l2: carla.Location) -> float:
+        d = 0.0
+        for transform in self.path:
+            if location_equal()
+
+        return d
 
     def draw_hints(self, _car, _bridge,
                    _color=carla.Color(r=0, g=125, b=125, a=125)

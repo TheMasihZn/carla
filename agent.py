@@ -1,8 +1,5 @@
 import carla
-import bridge
-from calculation_delegate import (location_equal, rotation_equal, transform_equal)
-from carla import TrafficLightState as LightState
-
+from calculation_delegate import location_equal
 
 class Agent(object):
     # noinspection PyArgumentList
@@ -32,7 +29,7 @@ class Agent(object):
             ):
                 return (
                     npc.transform.location.distance_to(
-                        next_dest.transform.location
+                        next_dest.location
                     )
                 )
         return False
