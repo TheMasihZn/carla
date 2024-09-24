@@ -4,9 +4,10 @@ import carla
 from carla import AttachmentType
 from carla import ColorConverter
 from numpy import random
+
+from cars import Car
 from router import Router
 from pov import POV
-from sensor_manager import SensorManager
 from traffic_light_manager import TrafficLights
 
 
@@ -42,6 +43,7 @@ if __name__ == '__main__':
             )
         )
     )
+
     traffic_light_settings = {
         11: {
             'initial_state': carla.TrafficLightState.Red,
@@ -71,8 +73,9 @@ if __name__ == '__main__':
     pov = None
     try:
 
-        ego = spawn_hero(
+        ego = Car(
             bridge,
+            'models.csv',
             spawn_transform
         )
 
@@ -84,38 +87,29 @@ if __name__ == '__main__':
             {
                 'name': 'Camera RGB',
                 'id': 'sensor.camera.rgb',
-                'convertion_methode': ColorConverter.Raw,
                 'transform': carla.Transform(carla.Location(
                     x=-2.0 * bound_x,
                     y=+0.0 * bound_y,
                     z=+2.0 * bound_z
                 ), carla.Rotation(pitch=8.0)),
                 'attachment': AttachmentType.SpringArm,
-                'data': None,
-                'actor': None,
                 'n_updates': 0
             },
             {
                 'name': 'Lidar (Ray-Cast)',
                 'id': 'sensor.lidar.ray_cast',
-                'convertion_methode': None,
                 'transform': carla.Transform(carla.Location(
                     x=-1.0,
                     y=-1.0 * bound_y,
                     z=+0.4 * bound_z
                 ), carla.Rotation()),
                 'attachment': AttachmentType.Rigid,
-                'data': None,
-                'actor': None
             },
             {
                 'name': 'Lane Invasion',
                 'id': 'sensor.other.lane_invasion',
-                'convertion_methode': None,
                 'transform': carla.Transform(carla.Location(), carla.Rotation()),
                 'attachment': AttachmentType.Rigid,
-                'data': None,
-                'actor': None
             },
         ]
 
@@ -128,7 +122,7 @@ if __name__ == '__main__':
             _spawn_transform=spawn_transform,
             _bridge=bridge,
             _router=Router(bridge, route_file_path='route.csv', spawn_hints=False),
-            _player=ego,
+            _car=ego,
             _sensor_list=sensor_list,
             _traffic_light_manager=TrafficLights(_bridge=bridge, _initial_settings=traffic_light_settings),
             _window_size=window_size
@@ -142,8 +136,8 @@ if __name__ == '__main__':
 
     except KeyboardInterrupt:
         pass
-    except Exception as e:
-        print(e)
+    # except Exception as e:
+    #     print(e)
     finally:
         if pov:
             pov.close()

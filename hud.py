@@ -6,6 +6,7 @@ import numpy as np
 import pygame
 from pygame.locals import (KMOD_CTRL, K_ESCAPE, K_q, K_c, WINDOWMOVED)
 
+from cars import Car
 import traffic_light_manager
 
 
@@ -30,28 +31,26 @@ class HUD(object):
         pygame.font.init()
         self.event_thread.start()
 
-    def set_text_for_tick(
+    def update_text(
             self,
             _sensor_info,
-            _transform,
-            _velocity,
-            _control,
+            _car: Car,
             _traffic_lights
             # _vehicles
     ):
 
         self._text_template = [
-            'Speed:   % 15.0f km/h' % (3.6 * math.sqrt(_velocity.x ** 2 + _velocity.y ** 2 + _velocity.z ** 2)),
-            'Location:% 20s' % ('(% 5.1f, % 5.1f)' % (_transform.location.x, _transform.location.y)),
-            'Height:  % 18.0f m' % _transform.location.z,
+            'Speed:   % 15.0f km/h' % _car.speed,
+            'Location:% 20s' % ('(% 5.1f, % 5.1f)' % (_car.location.x, _car.location.y)),
+            'Height:  % 18.0f m' % _car.location.z,
             '',
-            ('Throttle:', _control.throttle, 0.0, 1.0),
-            ('Steer:', _control.steer, -1.0, 1.0),
-            ('Brake:', _control.brake, 0.0, 1.0),
-            ('Reverse:', _control.reverse),
-            ('Hand brake:', _control.hand_brake),
-            ('Manual:', _control.manual_gear_shift),
-            'Gear:        %s' % {-1: 'R', 0: 'N'}.get(_control.gear, _control.gear),
+            ('Throttle:', _car.control.throttle, 0.0, 1.0),
+            ('Steer:', _car.control.steer, -1.0, 1.0),
+            ('Brake:', _car.control.brake, 0.0, 1.0),
+            ('Reverse:', _car.control.reverse),
+            ('Hand brake:', _car.control.hand_brake),
+            ('Manual:', _car.control.manual_gear_shift),
+            'Gear:        %s' % {-1: 'R', 0: 'N'}.get(_car.control.gear, _car.control.gear),
             '',
             ('Traffic lights:', _traffic_lights),
             # 'Number of vehicles in front: % 8d' % (len(_vehicles) + 1)

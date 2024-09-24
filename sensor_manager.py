@@ -1,29 +1,34 @@
 import numpy as np
 import carla
 
-import bridge
-
+from bridge import CarlaBridge
+from cars import Car
 
 class SensorManager(object):
 
     # noinspection PyArgumentList
     def __init__(
             self,
-            _bridge: bridge.CarlaBridge,
-            player: carla.Vehicle,
+            _bridge: CarlaBridge,
+            _car: Car,
             sensors: list,
             window_size: dict
     ):
         self.surface = None
-        self._player = player
         self.width = window_size['width']
         self.height = window_size['height']
 
-        self.sensors = sensors
-        self.__spawn_sensors(_bridge)
+        # [:] makes a copy list
+        self.sensors = sensors[:]
+        self.__spawn_sensors(_bridge, _car)
 
-    def __spawn_sensors(self, _bridge: bridge.CarlaBridge):
+    def __spawn_sensors(self, _bridge: CarlaBridge, _car: Car):
         for i, sensor_data in enumerate(self.sensors):
+
+            # add internal data parameters
+            sensor_data['data']: None
+            sensor_data['actor']: None
+
             sensor_bp = _bridge.blueprint_library.find(sensor_data['id'])
 
             if 'camera' in sensor_data['id']:
@@ -35,7 +40,7 @@ class SensorManager(object):
             actor = _bridge.spawn_actor(
                 sensor_bp,
                 sensor_data['transform'],
-                attach_to=self._player,
+                attach_to=_car.actor,
                 attachment_type=sensor_data['attachment']
             )
 
@@ -50,7 +55,6 @@ class SensorManager(object):
             self.sensors[i]['actor'] = actor
 
     def __process_camera_data(self, image: carla.Image, sensor_index=-1):
-        # image.convert(camera[camera['convertion_methode']])
         array = np.frombuffer(image.raw_data, dtype=np.dtype("uint8"))
         array = np.reshape(array, (image.height, image.width, 4))
         array = array[:, :, :3]

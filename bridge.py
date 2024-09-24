@@ -2,19 +2,15 @@ import random
 import carla
 
 random.seed(0)
-SpawnActor = carla.command.SpawnActor
-SetAutopilot = carla.command.SetAutopilot
-FutureActor = carla.command.FutureActor
-DestroyActor = carla.command.DestroyActor
 
 
+# noinspection PyArgumentList
 class CarlaBridge(object):
 
-    # noinspection PyUnresolvedReferences
     def __init__(self):
         self.client = carla.Client('127.0.0.1', 2000)
         self.world: carla.World = self.client.get_world()
-        self.settings = self.world.get_settings()
+        self.settings: carla.WorldSettings = self.world.get_settings()
         self.map: carla.Map = self.world.get_map()
 
         traffic_manager = self.client.get_trafficmanager(8000)
@@ -41,7 +37,7 @@ class CarlaBridge(object):
                     attach_to=None,
                     attachment_type=carla.AttachmentType.Rigid,
                     destroy_at_the_end=True
-                    ):
+                    ) -> carla.Actor:
         if destroy_at_the_end:
             name = bp.get_attribute('role_name').as_str() + '__destroy'
             bp.set_attribute('role_name', name)
