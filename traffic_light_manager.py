@@ -43,22 +43,21 @@ class TrafficLights(object):
             )
 
     def update_distances(self, _router: Router):
-        distances = []
-        for target_i in self.__targets_i_in_path:
-            distances.append(_router.distance_to_(target_i))
+        params = []
+        for _i, target_i in enumerate(self.__targets_i_in_path):
+            params.append(
+                (
+                    target_i,
+                    _router.distance_to_(target_i),
+                    self.targets[_i]
+                )
+            )
 
-
-        self.distance_to_targets = distances
-
-        # dist_light_zip = sorted(
-        #     zip(
-        #         distances,
-        #         self.targets
-        #     ),
-        #     key=lambda tup: tup[0])
-        # self.targets = []
-        # self.distance_to_targets = []
-        # for d, t in dist_light_zip:
-        #     self.targets.append(t)
-        #     self.distance_to_targets.append(d)
+        self.__targets_i_in_path = []
+        self.distance_to_targets = []
+        self.targets = []
+        for p_i, p_d, p_t in sorted(params, key=lambda p: p[1]):
+            self.__targets_i_in_path.append(p_i)
+            self.distance_to_targets.append(p_d)
+            self.targets.append(p_t)
 

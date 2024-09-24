@@ -23,7 +23,7 @@ class HUD(object):
             pygame.HWSURFACE | pygame.DOUBLEBUF
         )
         self.thread_wait = False
-        self.stop_signal = False
+        self.window_closed = False
         self.event_thread = threading.Thread(target=self.thread_worker)
 
         pygame.display.set_caption('Hero POV')
@@ -116,7 +116,7 @@ class HUD(object):
 
     def thread_worker(self):
         while True:
-            if self.stop_signal:
+            if self.window_closed:
                 break
             if self.thread_wait:
                 continue
@@ -136,5 +136,5 @@ class HUD(object):
         self.thread_wait = False
 
     def close(self):
-        if not self.stop_signal:
-            self.stop_signal = True
+        if not self.window_closed:
+            self.window_closed = True

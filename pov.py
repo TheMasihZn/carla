@@ -7,7 +7,6 @@ from sensor_manager import SensorManager
 from hud import HUD
 from agent import Agent
 from router import Router
-from controller import VehiclePIDController
 from traffic_light_manager import TrafficLights
 
 random.seed(0)
@@ -31,18 +30,9 @@ class POV(object):
         self.traffic_light_manager = _traffic_light_manager
         self.router = _router
         self.agent = Agent(_npc_list=_bridge.npc_list, _traffic_light_manager=self.traffic_light_manager)
-        self.controller = VehiclePIDController(
-            self.car.actor,
-            _bridge=_bridge,
-            offset=0.0,
-            max_throttle=1.0,
-            max_brake=1.0,
-            max_steering=0.8
-        )
 
     # noinspection PyArgumentList
     def on_tick(self, _bridge: CarlaBridge):
-
         self.car.update_parameters()
         self.router.on_tick(self.car.transform)
         self.traffic_light_manager.update_distances(self.router)
@@ -53,29 +43,16 @@ class POV(object):
             self.car,
             self.traffic_light_manager
         )
-
         self.hud.on_tick()
-        if self.hud.stop_signal:
+
+        if self.hud.window_closed:
             return 'break'
 
-        # self.router.draw_hints(self.car, _bridge)
-
-        if not next_dest:
-            return 'break'
-
-        distance_to_stop_in = False
-        # distance_to_stop_in = self.agent.should_stop(
-        #     next_3_waypoints
-        # )
-
-        control = self.controller.run_step(
-            40.0,
-            _bridge.map.get_waypoint(
-                next_dest.location
-            ),
-            distance_to_stop_in
+        self.agent.on_tick(
+            _car=self.car,
+            _tl_manager=self.traffic_light_manager,
+            _destination=self.router.next_destination()
         )
-        self.car.inject_control(control)
 
         self.hud.render(self.sensor_manager.sensors)
 

@@ -4,119 +4,44 @@ import numpy as np
 import carla
 
 
-def get_speed(vehicle):
-    v = vehicle.get_velocity()
-    return 3.6 * math.sqrt(v.x ** 2 + v.y ** 2 + v.z ** 2)
+class PIDController(object):
+    def __init__(self):
+        self.accelerator = PIDAcceleration(target_speed=40)
+        self.steer = PIDSteering()
 
-
-class VehiclePIDController(object):
-    def __init__(
+    def get_new_control(
             self,
-            _vehicle,
-            _bridge,
-            offset=0.0,
-            max_throttle=0.0,
-            max_brake=0.0,
-            max_steering=0.0,
+            _previous_control: carla.VehicleControl,
+            _should_stop: bool,
+            _speed,
+            _dest: carla.Location,
+            _now_at: carla.Location,
+            _forward_v
     ):
-        self.vehicle = _vehicle
-        self.max_brake = max_brake
-        self.max_throttle = max_throttle
-        self.max_steer = max_steering
+        if not _should_stop:
+            throttle_adjustment = self.accelerator.on_tick(speed=_speed)
+            _previous_control.throttle += throttle_adjustment
 
-        self.steer = self.vehicle.get_control().steer
-        self._lon_controller = PIDLongitudinalController(self.vehicle, **{
-            'K_P': 1.0,
-            'K_I': 0.05,
-            'K_D': 0.0,
-            'dt': 0.0
-        })
-        self._lat_controller = PIDLateralController(self.vehicle, offset, **{
-            'K_P': 1.95,
-            'K_I': 0.05,
-            'K_D': 0.2,
-            'dt': 0.0
-        })
+        steer_adjustment = self.steer.on_tick(_dest, _now_at=_now_at, forward_v=_forward_v)
 
-    def run_step(self, target_speed, waypoint, distance_to_stop_in):
-        if distance_to_stop_in:
-            control = self.vehicle.get_control()
-            control.throttle = 0
-            control.brake = 1
-            return control
-        acceleration = self._lon_controller.run_step(target_speed)
-        current_steering = self._lat_controller.run_step(waypoint)
-        control = self.vehicle.get_control()
-        if acceleration >= 0.0:
-            control.throttle = min(acceleration, self.max_throttle)
-            control.brake = 0.0
-        else:
-            control.throttle = 0.0
-            control.brake = min(abs(acceleration), self.max_brake)
+        _previous_control.steer += steer_adjustment
+        # control.hand_brake = False
+        # control.manual_gear_shift = False
 
-        # Steering regulation: changes cannot happen abruptly, can't steer too much.
-
-        if current_steering > self.steer + 0.1:
-            current_steering = self.steer + 0.1
-        elif current_steering < self.steer - 0.1:
-            current_steering = self.steer - 0.1
-
-        if current_steering >= 0:
-            steering = min(self.max_steer, current_steering)
-        else:
-            steering = max(-self.max_steer, current_steering)
-
-        control.steer = steering
-        control.hand_brake = False
-        control.manual_gear_shift = False
-        self.steer = steering
-
-        return control
+        return _previous_control
 
 
-class PIDLongitudinalController():
-    def __init__(self, vehicle, K_P=1.0, K_I=0.0, K_D=0.0, dt=0.03):
-        """
-        Constructor method.
-
-            :param vehicle: actor to apply to local planner logic onto
-            :param K_P: Proportional term
-            :param K_D: Differential term
-            :param K_I: Integral term
-            :param dt: time differential in seconds
-        """
-        self._vehicle = vehicle
-        self._k_p = K_P
-        self._k_i = K_I
-        self._k_d = K_D
+class PIDAcceleration(object):
+    def __init__(self, target_speed):
+        self._target_speed = target_speed
+        self._k_p = 1.0
+        self._k_i = 0.0
+        self._k_d = 0.0
         self._dt = 0.03
         self._error_buffer = deque(maxlen=10)
 
-    def run_step(self, target_speed, debug=False):
-        """
-        Execute one step of longitudinal control to reach a given target speed.
-
-            :param target_speed: target speed in Km/h
-            :param debug: boolean for debugging
-            :return: throttle control
-        """
-        current_speed = get_speed(self._vehicle)
-
-        if debug:
-            print('Current speed = {}'.format(current_speed))
-
-        return self._pid_control(target_speed, current_speed)
-
-    def _pid_control(self, target_speed, current_speed):
-        """
-        Estimate the throttle/brake of the vehicle based on the PID equations
-
-            :param target_speed:  target speed in Km/h
-            :param current_speed: current speed of the vehicle in Km/h
-            :return: throttle/brake control
-        """
-
-        error = target_speed - current_speed
+    def on_tick(self, speed):
+        error = self._target_speed - speed
         self._error_buffer.append(error)
 
         if len(self._error_buffer) >= 2:
@@ -128,80 +53,29 @@ class PIDLongitudinalController():
 
         return np.clip((self._k_p * error) + (self._k_d * _de) + (self._k_i * _ie), -1.0, 1.0)
 
-    def change_parameters(self, K_P, K_I, K_D, dt):
-        """Changes the PID parameters"""
-        self._k_p = K_P
-        self._k_i = K_I
-        self._k_d = K_D
-        self._dt = dt
 
-
-class PIDLateralController():
-    """
-    PIDLateralController implements lateral control using a PID.
-    """
-
-    def __init__(self, vehicle, offset=0.0, K_P=1.0, K_I=0.0, K_D=0.0, dt=0.03):
-        """
-        Constructor method.
-
-            :param vehicle: actor to apply to local planner logic onto
-            :param offset: distance to the center line. If might cause issues if the value
-                is large enough to make the vehicle invade other lanes.
-            :param K_P: Proportional term
-            :param K_D: Differential term
-            :param K_I: Integral term
-            :param dt: time differential in seconds
-        """
-        self._vehicle = vehicle
-        self._k_p = K_P
-        self._k_i = K_I
-        self._k_d = K_D
+class PIDSteering(object):
+    def __init__(self):
+        self._k_p = 1.0
+        self._k_i = 0.0
+        self._k_d = 0.0
         self._dt = 0.03
-        self._offset = offset
+        self._offset = 0.0
         self._e_buffer = deque(maxlen=10)
 
-    def run_step(self, waypoint):
-        """
-        Execute one step of lateral control to steer
-        the vehicle towards a certain waypoin.
+    def on_tick(self, _dest: carla.Location, _now_at: carla.Location, forward_v: carla.Vector3D):
+        forward_v = np.array([forward_v.x, forward_v.y, 0.0])
 
-            :param waypoint: target waypoint
-            :return: steering control in the range [-1, 1] where:
-            -1 maximum steering to left
-            +1 maximum steering to right
-        """
-        return self._pid_control(waypoint, self._vehicle.get_transform())
-
-    def set_offset(self, offset):
-        """Changes the offset"""
-        self._offset = offset
-
-    def _pid_control(self, waypoint, vehicle_transform):
-        """
-        Estimate the steering angle of the vehicle based on the PID equations
-
-            :param waypoint: target waypoint
-            :param vehicle_transform: current transform of the vehicle
-            :return: steering control in the range [-1, 1]
-        """
-        # Get the ego's location and forward vector
-        ego_loc = vehicle_transform.location
-        current_rotation = vehicle_transform.get_forward_vector()
-        current_rotation = np.array([current_rotation.x, current_rotation.y, 0.0])
-
-        w_loc = waypoint.transform.location
-
-        w_vec = np.array([w_loc.x - ego_loc.x,
-                          w_loc.y - ego_loc.y,
+        w_vec = np.array([_dest.x - _now_at.x,
+                          _dest.y - _now_at.y,
                           0.0])
 
-        wv_linalg = np.linalg.norm(w_vec) * np.linalg.norm(current_rotation)
+        wv_linalg = np.linalg.norm(w_vec) * np.linalg.norm(forward_v)
         if wv_linalg == 0:
             _dot = 1
         else:
-            _dot = math.acos(np.clip(np.dot(w_vec, current_rotation) / (wv_linalg), -1.0, 1.0))
-        _cross = np.cross(current_rotation, w_vec)
+            _dot = math.acos(np.clip(np.dot(w_vec, forward_v) / wv_linalg, -1.0, 1.0))
+        _cross = np.cross(forward_v, w_vec)
         if _cross[2] < 0:
             _dot *= -1.0
 
@@ -214,57 +88,3 @@ class PIDLateralController():
             _ie = 0.0
 
         return np.clip((self._k_p * _dot) + (self._k_d * _de) + (self._k_i * _ie), -1.0, 1.0)
-
-    #
-    # def _pid_control(self, waypoint, vehicle_transform):
-    #     """
-    #     Estimate the steering angle of the vehicle based on the PID equations
-    #
-    #         :param waypoint: target waypoint
-    #         :param vehicle_transform: current transform of the vehicle
-    #         :return: steering control in the range [-1, 1]
-    #     """
-    #     # Get the ego's location and forward vector
-    #     ego_loc = vehicle_transform.location
-    #     v_vec = vehicle_transform.get_forward_vector()
-    #     v_vec = np.array([v_vec.x, v_vec.y, 0.0])
-    #
-    #     # Get the vector vehicle-target_wp
-    #     if self._offset != 0:
-    #         # Displace the wp to the side
-    #         w_tran = waypoint.transform
-    #         r_vec = w_tran.get_right_vector()
-    #         w_loc = w_tran.location + carla.Location(x=self._offset*r_vec.x,
-    #                                                      y=self._offset*r_vec.y)
-    #     else:
-    #         w_loc = waypoint.transform.location
-    #
-    #     w_vec = np.array([w_loc.x - ego_loc.x,
-    #                       w_loc.y - ego_loc.y,
-    #                       0.0])
-    #
-    #     wv_linalg = np.linalg.norm(w_vec) * np.linalg.norm(v_vec)
-    #     if wv_linalg == 0:
-    #         _dot = 1
-    #     else:
-    #         _dot = math.acos(np.clip(np.dot(w_vec, v_vec) / (wv_linalg), -1.0, 1.0))
-    #     _cross = np.cross(v_vec, w_vec)
-    #     if _cross[2] < 0:
-    #         _dot *= -1.0
-    #
-    #     self._e_buffer.append(_dot)
-    #     if len(self._e_buffer) >= 2:
-    #         _de = (self._e_buffer[-1] - self._e_buffer[-2]) / self._dt
-    #         _ie = sum(self._e_buffer) * self._dt
-    #     else:
-    #         _de = 0.0
-    #         _ie = 0.0
-    #
-    #     return np.clip((self._k_p * _dot) + (self._k_d * _de) + (self._k_i * _ie), -1.0, 1.0)
-
-    def change_parameters(self, K_P, K_I, K_D, dt):
-        """Changes the PID parameters"""
-        self._k_p = K_P
-        self._k_i = K_I
-        self._k_d = K_D
-        self._dt = dt

@@ -1,7 +1,10 @@
 import carla
 
+import cars
 import traffic_light_manager
 from calculation_delegate import location_equal
+from controller import PIDController
+import math
 
 
 class Agent(object):
@@ -15,13 +18,15 @@ class Agent(object):
         self.traffic_lights = _traffic_light_manager
         self.target_speed = 40
         self.safe_distance = 5.0
+        self.max_steer = 0.8
 
-    # def stop_in(self, distance: float = 0.0):
-    #     self.control.throttle = 0.0
-    #     self.control.brake = 1.0
-    #     self.control.hand_brake = (self.safe_distance > distance)
+        self.done_once = False
+        self.start_dist = None
+        self.stop_dist = None
 
-    # detect if there is a hazard
+        self.pid = PIDController(
+            # max_steering=0.8
+        )
     def __front_car_distance(self, next_dest: carla.Transform):
 
         for npc in self.npc_list:
@@ -37,31 +42,39 @@ class Agent(object):
                 )
         return False
 
-    def __traffic_light_distance(
-            self,
-            _tl_manager: traffic_light_manager.TrafficLights,
-            reference_waypoint):
-        d = min(_tl_manager.distance_to_targets)
-        if d < self.safe_distance * 4:
-            return d
+    def on_tick(self, _car: cars.Car, _tl_manager: traffic_light_manager.TrafficLights, _destination: carla.Location):
 
-        return False
+        d_to_tl = _tl_manager.distance_to_targets[0]
+        d = 0
+        control = _car.control
 
-    def should_stop(self, next_n_waypoints):
-        """
-        :param next_n_waypoints: how many future waypoints to analyse
-        """
-        for step_waypoint in next_n_waypoints:
-            stop_distance = 0
-            front_car_distance = self.__front_car_distance(step_waypoint.transform)
-            if front_car_distance:
-                stop_distance += front_car_distance
+        if not self.done_once:
 
-            traffic_light_distance = self.__traffic_light_distance(step_waypoint)
-            if traffic_light_distance:
-                stop_distance += traffic_light_distance
+            if _car.speed / 3.6 <= 1.0:
+                control.throttle = 1.0
+                control.brake=0.0
+            else:
+                if not self.start_dist:
+                    self.start_dist = _car.location
+                control.throttle = 0.0
+                control.brake=0.0
+                self.done_once = True
+        else:
+            if _car.speed == 0.0:
+                if not self.stop_dist:
+                    self.stop_dist = _car.location
+                    d = math.sqrt((self.start_dist.x - self.stop_dist.x)**2 + (self.start_dist.y - self.stop_dist.y)**2)
 
-            if stop_distance > 0:
-                return stop_distance
+                    # should_stop = False
+        # if d_to_tl < self.safe_distance:
+        #     control.throttle = 0
+        #     control.brake = 1
+        #     return control
+        #
+        # elif d_to_tl < self.safe_distance * 4:
+        #     should_stop = True
+        #
+        # control = self.pid.get_new_control(target_speed=40.0, destination=_destination)
+        _car.inject_control(control)
 
-        return False
+

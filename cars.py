@@ -14,7 +14,7 @@ class Car(object):
             lines = file.readlines()[1:]
 
         while True:
-            car_data = random.choice(lines).split(',')
+            car_data = random.choice(lines[3:4]).split(',')
             try:
                 self.actor = _bridge.spawn_actor(
                     _bridge.blueprint_library.filter(car_data[0])[0],
@@ -25,15 +25,17 @@ class Car(object):
                 print(f'{car_data[0]} not found')
             finally:
                 pass
-        self.weight = car_data[1]
-        self.max_rpm = car_data[2]
-        self.drag = car_data[3]
+        self.name = car_data[0]
+        self.weight = float(car_data[1])
+        self.max_rpm = float(car_data[2])
+        self.drag = float(car_data[3])
         self.bounding_box: carla.BoundingBox = None
         self.velocity: carla.Vector3D = None
         self.transform: carla.Transform = None
         self.control: carla.VehicleControl = None
         self.location: carla.Location = None
         self.rotation: carla.Rotation = None
+        self.__i_in_path = 0
 
         self.speed = None
 
@@ -48,10 +50,7 @@ class Car(object):
         self.rotation = self.transform.rotation
         self.control = self.actor.get_control()
         self.bounding_box = self.actor.bounding_box
-        self.speed = 3.6 * math.sqrt(self.velocity.x ** 2 +
-                                     self.velocity.y ** 2
-                                     # + self.velocity.z ** 2
-                                     )
+        self.speed = 3.6 * math.sqrt(self.velocity.x ** 2 + self.velocity.y ** 2)
 
     def inject_control(self, control: carla.VehicleControl):
         self.actor.apply_control(control)
