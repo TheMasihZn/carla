@@ -26,9 +26,11 @@ class Car(object):
             finally:
                 pass
         self.name = car_data[0]
-        self.weight = float(car_data[1])
         self.max_rpm = float(car_data[2])
-        self.drag = float(car_data[3])
+        phys = self.actor.get_physics_control()
+
+        self.weight = phys.mass
+        self.drag = phys.drag_coefficient
         self.bounding_box: carla.BoundingBox = None
         self.velocity: carla.Vector3D = None
         self.transform: carla.Transform = None

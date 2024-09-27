@@ -23,6 +23,7 @@ class Agent(object):
         self.done_once = False
         self.start_dist = None
         self.stop_dist = None
+        self.max_speed = 0.0
 
         self.pid = PIDController(
             # max_steering=0.8
@@ -45,12 +46,13 @@ class Agent(object):
     def on_tick(self, _car: cars.Car, _tl_manager: traffic_light_manager.TrafficLights, _destination: carla.Location):
 
         d_to_tl = _tl_manager.distance_to_targets[0]
-        d = 0
+        d = 0.0
         control = _car.control
-
+        if self.max_speed < _car.speed:
+            self.max_speed = _car.speed
         if not self.done_once:
 
-            if _car.speed / 3.6 <= 1.0:
+            if _car.speed / 3.6 <= 10.0:
                 control.throttle = 1.0
                 control.brake=0.0
             else:
