@@ -1,10 +1,12 @@
 import pygame
 import bridge
+
 import carla
 from carla import AttachmentType
 from carla import ColorConverter
-from numpy import random
+from carla.libcarla import TrafficLightState
 
+from numpy import random
 from cars import Car
 from router import Router
 from pov import POV
@@ -30,41 +32,40 @@ def spawn_hero(
 if __name__ == '__main__':
     bridge = bridge.CarlaBridge()
 
-    bridge.spectator.set_transform(
-        carla.Transform(
-            carla.Location(
-                x=-70.172501,
-                y=128.424377,
-                z=99.078232
-            ), carla.Rotation(
-                pitch=-56.843441,
-                yaw=-51.880329,
-                roll=0.000022
-            )
-        )
-    )
-
     # bridge.spectator.set_transform(
     #     carla.Transform(
-    #         carla.Location(x=-31.930841, y=20.301954, z=0.254254)
+    #         carla.Location(
+    #             x=-70.172501,
+    #             y=128.424377,
+    #             z=99.078232
+    #         ), carla.Rotation(
+    #             pitch=-56.843441,
+    #             yaw=-51.880329,
+    #             roll=0.000022
+    #         )
     #     )
     # )
+    bridge.spectator.set_transform(
+        carla.Transform(
+            carla.Location(x=104.854881, y=36.462254, z=3.997350),
+            carla.Rotation(pitch=-9.908937, yaw=-49.531647, roll=0.000097))
+    )
 
     traffic_lights = {
-        11: {
-            'initial_state': carla.TrafficLightState.Red,
-            'green_time': 10.0,
-            'yellow_time': 5.0,
-            'red_time': 25.0,
-        },
         13: {
-            'initial_state': carla.TrafficLightState.Green,
+            'initial_state': TrafficLightState.Green,
             'green_time': 15.0,
             'yellow_time': 5.0,
             'red_time': 20.0,
         },
+        11: {
+            'initial_state': TrafficLightState.Red,
+            'green_time': 10.0,
+            'yellow_time': 5.0,
+            'red_time': 25.0,
+        },
         20: {
-            'initial_state': carla.TrafficLightState.Red,
+            'initial_state': TrafficLightState.Red,
             'green_time': 12.0,
             'yellow_time': 4.0,
             'red_time': 24.0,
@@ -124,14 +125,15 @@ if __name__ == '__main__':
             'height': 720,
         }
 
-        router = Router(bridge, route_file_path='route.csv', spawn_hints=False)
+        router = Router(bridge, route_file_path='route.csv', spawn_hints=True)
+        tl_manager = TrafficLights(_bridge=bridge, _router=router, _initial_settings=traffic_lights)
         pov = POV(
             _spawn_transform=spawn_transform,
             _bridge=bridge,
             _router=router,
             _car=ego,
             _sensor_list=sensor_list,
-            _traffic_light_manager=TrafficLights(_bridge=bridge, _router=router, _initial_settings=traffic_lights),
+            _traffic_light_manager=tl_manager,
             _window_size=window_size
         )
 

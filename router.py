@@ -35,7 +35,7 @@ class Router(object):
 
     def next_destination(self):
         if not self.route:
-            return None
+            self.update_cache_route()
         return self.route[0]
 
     # noinspection PyTypeChecker
@@ -109,7 +109,7 @@ class Router(object):
                 end=_path[i + 1].location,
                 thickness=0.1,
                 color=_color,
-                life_time=_bridge.settings.max_substep_delta_time
+                life_time=0.1
             )
         # at last draw arrow
         _bridge.world.debug.draw_arrow(
@@ -117,9 +117,9 @@ class Router(object):
             end=_path[-1].location,
             arrow_size=1,
             color=_color,
-            life_time=_bridge.settings.max_substep_delta_time
+            life_time=0.1
         )
-        _bridge.last_hint = _path[-2]
+        _bridge.last_hint = _path[-1]
 
     def get_i_in_path(self, actor_location: carla.Location) -> int:
         for i, step in enumerate(self.path):

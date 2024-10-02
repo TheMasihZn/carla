@@ -20,11 +20,13 @@ class PIDController(object):
     ):
         if not _should_stop:
             throttle_adjustment = self.accelerator.on_tick(speed=_speed)
-            _previous_control.throttle += throttle_adjustment
+            _previous_control.throttle = throttle_adjustment
 
-        steer_adjustment = self.steer.on_tick(_dest, _now_at=_now_at, forward_v=_forward_v)
+        steer_adjustment = self.steer.on_tick(_dest=_dest, _now_at=_now_at, forward_v=_forward_v)
 
-        _previous_control.steer += steer_adjustment
+        if abs(_previous_control.steer - steer_adjustment) > 0.1:
+            print("steering too high")
+        _previous_control.steer = steer_adjustment
         # control.hand_brake = False
         # control.manual_gear_shift = False
 
@@ -42,6 +44,8 @@ class PIDAcceleration(object):
 
     def on_tick(self, speed):
         error = self._target_speed - speed
+        if error < 0:
+            return 0
         self._error_buffer.append(error)
 
         if len(self._error_buffer) >= 2:
@@ -51,7 +55,10 @@ class PIDAcceleration(object):
             _de = 0.0
             _ie = 0.0
 
-        return np.clip((self._k_p * error) + (self._k_d * _de) + (self._k_i * _ie), -1.0, 1.0)
+        error_0 = (self._k_p * error)
+        de_0 = (self._k_d * _de)
+        ie_ = (self._k_i * _ie)
+        return np.clip(error_0 + de_0 + ie_, .0, 1.0)
 
 
 class PIDSteering(object):
@@ -59,7 +66,7 @@ class PIDSteering(object):
         self._k_p = 1.0
         self._k_i = 0.0
         self._k_d = 0.0
-        self._dt = 0.03
+        self._dt = 0.01
         self._offset = 0.0
         self._e_buffer = deque(maxlen=10)
 

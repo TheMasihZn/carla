@@ -14,7 +14,7 @@ class Car(object):
             lines = file.readlines()[1:]
 
         while True:
-            car_data = random.choice(lines[3:4]).split(',')
+            car_data = random.choice(lines[4:5]).split(',')
             try:
                 self.actor = _bridge.spawn_actor(
                     _bridge.blueprint_library.filter(car_data[0])[0],
@@ -29,11 +29,16 @@ class Car(object):
         self.max_rpm = float(car_data[2])
         phys = self.actor.get_physics_control()
 
-        self.weight = phys.mass
+        self.mass = phys.mass
         self.drag = phys.drag_coefficient
+        self.max_rpm = phys.max_rpm
+        self.damping_rate_zero_throttle_clutch_engaged = phys.damping_rate_zero_throttle_clutch_engaged
+        self.damping_rate_full_throttle = phys.damping_rate_full_throttle
+        self.should_stop_in = None
         self.bounding_box: carla.BoundingBox = None
         self.velocity: carla.Vector3D = None
         self.transform: carla.Transform = None
+        self.forward: carla.Vector3D = None
         self.control: carla.VehicleControl = None
         self.location: carla.Location = None
         self.rotation: carla.Rotation = None
@@ -50,9 +55,19 @@ class Car(object):
         self.location = self.transform.location
         self.location.z = 0
         self.rotation = self.transform.rotation
+        self.forward = self.rotation.get_forward_vector()
         self.control = self.actor.get_control()
         self.bounding_box = self.actor.bounding_box
         self.speed = 3.6 * math.sqrt(self.velocity.x ** 2 + self.velocity.y ** 2)
+        self.should_stop_in = (
+                (self.speed
+                 / (
+                         self.damping_rate_zero_throttle_clutch_engaged -
+                         self.damping_rate_full_throttle -
+                         self.drag
+                 )
+                 ) +
+                self.bounding_box.extent.x / 2)
 
     def inject_control(self, control: carla.VehicleControl):
         self.actor.apply_control(control)
