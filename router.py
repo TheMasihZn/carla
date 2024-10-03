@@ -13,7 +13,7 @@ class Router(object):
         self.last_transform = self.path[0]
         self.route = []
         self.__current_index_in_route = 0
-        self.__header = 0
+        self.__route_header = 0
         self.__last_hint_index = 0
         self.update_cache_route()
 
@@ -34,8 +34,6 @@ class Router(object):
         self.update_cache_route()
 
     def next_destination(self):
-        if not self.route:
-            self.update_cache_route()
         return self.route[0]
 
     # noinspection PyTypeChecker
@@ -50,11 +48,14 @@ class Router(object):
         return _route
 
     def update_cache_route(self, n_batch=50):
-        if len(self.route) > n_batch:
+        if len(self.route) > n_batch / 2:
             return
-        for transform in self.path[self.__header:self.__header + (len(self.route) - n_batch)]:
+        for transform in self.path[self.__route_header:self.__route_header + n_batch]:
             self.route.append(transform)
-        self.__header += len(self.route) - n_batch
+        self.__route_header += n_batch
+        if self.__route_header >= len(self.path):
+            self.__route_header -= len(self.path)
+            self.route += self.path[0:self.__route_header]
 
     def distance_to_(self, i_in_path) -> float:
         return distance_in_route(self.__current_index_in_route, i_in_path, self.path)
