@@ -32,24 +32,24 @@ def spawn_hero(
 if __name__ == '__main__':
     bridge = bridge.CarlaBridge()
 
-    # bridge.spectator.set_transform(
-    #     carla.Transform(
-    #         carla.Location(
-    #             x=-70.172501,
-    #             y=128.424377,
-    #             z=99.078232
-    #         ), carla.Rotation(
-    #             pitch=-56.843441,
-    #             yaw=-51.880329,
-    #             roll=0.000022
-    #         )
-    #     )
-    # )
     bridge.spectator.set_transform(
         carla.Transform(
-            carla.Location(x=104.854881, y=36.462254, z=3.997350),
-            carla.Rotation(pitch=-9.908937, yaw=-49.531647, roll=0.000097))
+            carla.Location(
+                x=-70.172501,
+                y=128.424377,
+                z=99.078232
+            ), carla.Rotation(
+                pitch=-56.843441,
+                yaw=-51.880329,
+                roll=0.000022
+            )
+        )
     )
+    # bridge.spectator.set_transform(
+    #     carla.Transform(
+    #         carla.Location(x=104.854881, y=36.462254, z=3.997350),
+    #         carla.Rotation(pitch=-9.908937, yaw=-49.531647, roll=0.000097))
+    # )
 
     traffic_lights = {
         13: {
@@ -125,7 +125,7 @@ if __name__ == '__main__':
             'height': 720,
         }
 
-        router = Router(bridge, route_file_path='route.csv', spawn_hints=True)
+        router = Router(bridge, route_file_path='route.csv', spawn_hints=False)
         tl_manager = TrafficLights(_bridge=bridge, _router=router, _initial_settings=traffic_lights)
         pov = POV(
             _spawn_transform=spawn_transform,

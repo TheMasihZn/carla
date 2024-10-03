@@ -14,10 +14,10 @@ class Router(object):
         self.route = []
         self.__current_index_in_route = 0
         self.__route_header = 0
-        self.__last_hint_index = 0
+        self.__hint_header = 0
         self.update_cache_route()
 
-    def on_tick(self, _current_transform: carla.Transform):
+    def on_tick(self, _current_transform: carla.Transform, _speed: float, _bridge: CarlaBridge):
         if _current_transform != self.last_transform:
             self.last_transform = _current_transform
         for step in self.route:
@@ -32,6 +32,8 @@ class Router(object):
             else:
                 break
         self.update_cache_route()
+        if self.spawn_hints:
+            self.draw_hints(_speed, _bridge)
 
     def next_destination(self):
         return self.route[0]
@@ -99,28 +101,45 @@ class Router(object):
         plt.ylabel("Y")
         plt.show()
 
-    def draw_hints(self, _car, _bridge,
-                   _color=carla.Color(r=0, g=125, b=125, a=125)
-                   ):
-        _path = self[self.__last_hint_index:]
+    def draw_hints(
+            self, _speed, _bridge,
+            _color=carla.Color(r=0, g=125, b=125, a=125),
+            n=20,
+            resolution=2
+    ):
+        _header_after = self.__hint_header + resolution
 
-        for i in range(1, len(_path) - 1):
+        # to avoid over draw
+        if _header_after > self.__current_index_in_route + n:
+            return
+
+        _path = self.path[self.__hint_header:_header_after]
+        if _header_after >= len(self.path):
+            _header_after -= len(self.path)
+            _path += self.path[:_header_after]
+
+        for i in range(1, len(_path)):
+            # division by n<1 = infinite time
+            # hint_distance = distance_in_route(self.__current_index_in_route, self.__hint_header, self.path)
+            # time_step = (_speed + 0.01) / resolution
+            # if _speed < 1:
+            #     _time = i * 0.5
+            # elif _speed < (hint_distance / resolution):
+            #     _time = i * time_step * 0.5
+            # else:
+            #     _time = hint_distance / (_speed + 0.01)
+
+            _time = i * 0.5
             _bridge.world.debug.draw_line(
-                begin=_path[i].location,
-                end=_path[i + 1].location,
-                thickness=0.1,
+                begin=_path[i - 1].location,
+                end=_path[i].location,
+                thickness=0.08,
                 color=_color,
-                life_time=0.1
+                life_time=_time,
             )
-        # at last draw arrow
-        _bridge.world.debug.draw_arrow(
-            begin=_path[-2].location,
-            end=_path[-1].location,
-            arrow_size=1,
-            color=_color,
-            life_time=0.1
-        )
-        _bridge.last_hint = _path[-1]
+            self.__hint_header += 1
+            if self.__hint_header > len(self.path):
+                self.__hint_header -= len(self.path)
 
     def get_i_in_path(self, actor_location: carla.Location) -> int:
         for i, step in enumerate(self.path):

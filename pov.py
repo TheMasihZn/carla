@@ -34,7 +34,7 @@ class POV(object):
     # noinspection PyArgumentList
     def on_tick(self, _bridge: CarlaBridge):
         self.car.update_parameters()
-        self.router.on_tick(self.car.transform)
+        self.router.on_tick(self.car.transform, self.car.speed_mps, _bridge)
         self.traffic_light_manager.update_distances(self.router)
         next_dest = self.router.next_destination()
 

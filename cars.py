@@ -45,6 +45,7 @@ class Car(object):
         self.__i_in_path = 0
 
         self.speed = None
+        self.speed_mps = None
 
         self.update_parameters()
 
@@ -58,7 +59,8 @@ class Car(object):
         self.forward = self.rotation.get_forward_vector()
         self.control = self.actor.get_control()
         self.bounding_box = self.actor.bounding_box
-        self.speed = 3.6 * math.sqrt(self.velocity.x ** 2 + self.velocity.y ** 2)
+        self.speed_mps = math.sqrt(self.velocity.x ** 2 + self.velocity.y ** 2)
+        self.speed = 3.6 * self.speed_mps
         self.should_stop_in = (
                 (self.speed
                  / (

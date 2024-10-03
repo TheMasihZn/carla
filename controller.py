@@ -25,7 +25,7 @@ class PIDController(object):
         steer_adjustment = self.steer.on_tick(_dest=_dest, _now_at=_now_at, forward_v=_forward_v)
 
         if abs(_previous_control.steer - steer_adjustment) > 0.1:
-            print("steering too high")
+            raise Exception("steering too high")
         _previous_control.steer = steer_adjustment
         # control.hand_brake = False
         # control.manual_gear_shift = False
