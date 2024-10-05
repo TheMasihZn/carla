@@ -29,17 +29,13 @@ class POV(object):
         self.traffic_light_manager = _traffic_light_manager
         self.router = _router
         self.relevant_npc_list = []
-        self.agent = Agent(
-            _relevant_npc_list=self.relevant_npc_list,
-            _traffic_light_manager=self.traffic_light_manager
-        )
+        self.agent = Agent(_traffic_light_manager=self.traffic_light_manager)
 
     # noinspection PyArgumentList
     def on_tick(self, _bridge: CarlaBridge):
         self.car.update_parameters()
         self.router.on_tick(self.car.transform, _bridge)
         self.traffic_light_manager.update_distances(self.router)
-        self.__update_relevant_npc_list()
 
         self.hud.update_text(
             self.sensor_manager.sensors,
@@ -61,16 +57,6 @@ class POV(object):
         self.hud.render(self.sensor_manager.sensors)
 
         return ''
-
-    def __update_relevant_npc_list(self, _bridge: CarlaBridge):
-        self.relevant_npc_list = []
-        self.npc_route_id = {}
-        for npc in _bridge.npc_list:
-            npc_location = npc.get_location()
-            wp = _bridge.map.get_waypoint(npc_location)
-            if (wp.road_id, wp.lane_id) in self.router.road_lane_pairs:
-                self.relevant_npc_list.append(npc)
-                self.npc_route_id[npc] = self.router.get_i_in_path(npc_location)
 
     def close(self):
         self.hud.close()

@@ -12,15 +12,15 @@ class Agent(object):
     # noinspection PyArgumentList
     def __init__(
             self,
-            _relevant_npc_list,
             _traffic_light_manager
     ):
-        self.npc_list = _relevant_npc_list
-        self.npc_list_distances = None
-        self.traffic_lights = _traffic_light_manager
         self.target_speed = 40
         self.safe_distance = 5.0
         self.max_steer = 0.8
+
+        self.relevant_npc_list = []
+        self.npc_distances = {}
+        self.traffic_lights = _traffic_light_manager
 
         # self.done_once = False
         # self.start_dist = None
@@ -31,30 +31,16 @@ class Agent(object):
             # max_steering=0.8
         )
 
-    def __front_car_distance(self, next_dest: carla.Transform):
-        for npc in self.npc_list:
-            npc: carla.Vehicle = npc
-
-            if location_equal(
-                    next_dest.location,
-                    npc.transform.location,
-                    self.safe_distance
-            ):
-                return (
-                    npc.transform.location.distance_to(
-                        next_dest.location
-                    )
-                )
-        return False
-
     def on_tick(
             self,
-            _car: cars.Car,
+            _map: carla.Map,
             _router: router.Router,
+            _npc_list: list,
             _tl_manager: traffic_light_manager.TrafficLights,
+            _car: cars.Car,
             _destination: carla.Location
     ):
-
+        self.__update_relevant_npc_list(_map=_map, _router=_router, _npc_list=_npc_list)
 
         # d_to_tl = _tl_manager.distance_to_targets[0]
         # d = 0.0
@@ -111,3 +97,26 @@ class Agent(object):
             # destination=_destination
         )
         _car.inject_control(control)
+
+    def __update_relevant_npc_list(
+            self,
+            _map: carla.Map,
+            _router: router.Router,
+            _npc_list: list
+    ):
+        self.relevant_npc_list = []
+        self.npc_distances = {}
+        for npc in _npc_list:
+            npc_location = npc.get_location()
+            wp = _map.get_waypoint(npc_location)
+            if (wp.road_id, wp.lane_id) in _router.road_lane_pairs:
+                self.relevant_npc_list.append(npc)
+                self.npc_distances[npc] = _router.distance_to_(
+                    _router.get_i_in_path(
+                        npc.get_location()
+                    )
+                )
+        sorted(
+            self.relevant_npc_list,
+            key=lambda k: self.npc_distances[k]
+        )
