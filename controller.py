@@ -13,13 +13,14 @@ class PIDController(object):
             self,
             _previous_control: carla.VehicleControl,
             _should_stop: bool,
-            _speed,
+            _target_speed: float,
+            _current_speed,
             _dest: carla.Location,
             _now_at: carla.Location,
             _forward_v
     ):
         if not _should_stop:
-            throttle_adjustment = self.accelerator.on_tick(speed=_speed)
+            throttle_adjustment = self.accelerator.on_tick(_target_speed=_target_speed, speed=_current_speed)
             _previous_control.throttle = throttle_adjustment
 
         steer_adjustment = self.steer.on_tick(_dest=_dest, _now_at=_now_at, forward_v=_forward_v)
@@ -35,15 +36,14 @@ class PIDController(object):
 
 class PIDAcceleration(object):
     def __init__(self, target_speed):
-        self._target_speed = target_speed
         self._k_p = 1.0
         self._k_i = 0.0
         self._k_d = 0.0
         self._dt = 0.03
         self._error_buffer = deque(maxlen=10)
 
-    def on_tick(self, speed):
-        error = self._target_speed - speed
+    def on_tick(self,_target_speed, speed):
+        error = _target_speed - speed
         if error < 0:
             return 0
         self._error_buffer.append(error)

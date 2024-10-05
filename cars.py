@@ -73,3 +73,4 @@ class Car(object):
 
     def inject_control(self, control: carla.VehicleControl):
         self.actor.apply_control(control)
+

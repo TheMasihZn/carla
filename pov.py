@@ -48,9 +48,11 @@ class POV(object):
             return 'break'
 
         self.agent.on_tick(
-            _car=self.car,
+            _map=_bridge.map,
+            _raw_npc_list=_bridge.npc_list,
             _router=self.router,
             _tl_manager=self.traffic_light_manager,
+            _car=self.car,
             _destination=self.router.next_destination()
         )
 

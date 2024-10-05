@@ -14,12 +14,10 @@ class Agent(object):
             self,
             _traffic_light_manager
     ):
-        self.target_speed = 40
+        self.max_speed = 40
         self.safe_distance = 5.0
         self.max_steer = 0.8
 
-        self.relevant_npc_list = []
-        self.npc_distances = {}
         self.traffic_lights = _traffic_light_manager
 
         # self.done_once = False
@@ -33,14 +31,35 @@ class Agent(object):
 
     def on_tick(
             self,
+
             _map: carla.Map,
             _router: router.Router,
-            _npc_list: list,
+            _raw_npc_list: list,
+
             _tl_manager: traffic_light_manager.TrafficLights,
             _car: cars.Car,
             _destination: carla.Location
     ):
-        self.__update_relevant_npc_list(_map=_map, _router=_router, _npc_list=_npc_list)
+        target_speed = self.max_speed
+        should_break = False
+
+        npc_list, npc_distances = self.process_npc_list(_map=_map, _router=_router, _npc_list=_raw_npc_list)
+        if len(npc_list) > 0:
+            nearest_npc = npc_list[0]
+            npc_distance = npc_distances[nearest_npc]
+
+            if npc_distance < self.safe_distance:
+                should_break = True
+                target_speed = 0
+
+            elif npc_distance < 2 * self.safe_distance:
+                target_speed = 0
+
+            elif npc_distance < 3 * self.safe_distance:
+                npc_velocity = nearest_npc.get_velocity()
+                npc_speed = 3.6 * math.sqrt(npc_velocity.x ** 2 + npc_velocity.y ** 2)
+                if npc_speed < _car.speed:
+                    target_speed = npc_speed
 
         # d_to_tl = _tl_manager.distance_to_targets[0]
         # d = 0.0
@@ -88,35 +107,35 @@ class Agent(object):
 
         control = self.pid.get_new_control(
             _previous_control=_car.control,
-            _should_stop=False,
-            _speed=_car.speed,
+            _should_stop=should_break,
+            _target_speed=target_speed,
+            _current_speed=_car.speed,
             _dest=_destination.location,
             _now_at=_car.location,
             _forward_v=_car.forward,
-            # target_speed=40.0,
-            # destination=_destination
         )
         _car.inject_control(control)
 
-    def __update_relevant_npc_list(
-            self,
+    @staticmethod
+    def process_npc_list(
             _map: carla.Map,
             _router: router.Router,
             _npc_list: list
     ):
-        self.relevant_npc_list = []
-        self.npc_distances = {}
+        _relevant_npc_list = []
+        _npc_distances = {}
         for npc in _npc_list:
             npc_location = npc.get_location()
             wp = _map.get_waypoint(npc_location)
             if (wp.road_id, wp.lane_id) in _router.road_lane_pairs:
-                self.relevant_npc_list.append(npc)
-                self.npc_distances[npc] = _router.distance_to_(
+                _relevant_npc_list.append(npc)
+                _npc_distances[npc] = _router.distance_to_(
                     _router.get_i_in_path(
                         npc.get_location()
                     )
                 )
         sorted(
-            self.relevant_npc_list,
-            key=lambda k: self.npc_distances[k]
+            _relevant_npc_list,
+            key=lambda k: _npc_distances[k]
         )
+        return _relevant_npc_list, _npc_distances

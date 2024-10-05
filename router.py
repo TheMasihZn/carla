@@ -48,11 +48,11 @@ class Router(object):
             transform = carla.Transform(location, rotation)
             _route.append(transform)
 
-        _road_lanes = set()
+        _road_lane_pairs = set()
         for transform in _route:
             waypoint = _bridge.map.get_waypoint(transform.location)
-            _road_lanes.add((waypoint.road_id, waypoint.lane_id))
-        return _route
+            _road_lane_pairs.add((waypoint.road_id, waypoint.lane_id))
+        return _route, _road_lane_pairs
 
     def update_cache_route(self, n_batch=50):
         if len(self.route) > n_batch / 2:
