@@ -69,19 +69,17 @@ class CarlaBridge(object):
             self.world.wait_for_tick()
 
     def go_async(self):
-        settings = self.settings
-        settings.synchronous_mode = False
-        settings.fixed_delta_seconds = None
-        self.world.apply_settings(settings)
         self.traffic_manager.set_synchronous_mode(False)
+        self.settings.synchronous_mode = False
+        self.settings.fixed_delta_seconds = None
+        self.world.apply_settings(self.settings)
         print('async')
 
     def go_sync(self):
-        settings = self.settings
-        settings.synchronous_mode = False
-        settings.fixed_delta_seconds = 0.5
-        self.world.apply_settings(settings)
         self.traffic_manager.set_synchronous_mode(True)
+        self.settings.synchronous_mode = True
+        self.settings.fixed_delta_seconds = 0.02
+        self.world.apply_settings(self.settings)
         print('sync')
 
     def spawn_teraffic(self, n_cars):

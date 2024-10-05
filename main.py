@@ -125,7 +125,7 @@ if __name__ == '__main__':
             'height': 720,
         }
 
-        router = Router(bridge, route_file_path='route.csv', spawn_hints=False)
+        router = Router(bridge, route_file_path='route.csv', spawn_hints=True)
         tl_manager = TrafficLights(_bridge=bridge, _router=router, _initial_settings=traffic_lights)
         pov = POV(
             _spawn_transform=spawn_transform,
@@ -137,8 +137,10 @@ if __name__ == '__main__':
             _window_size=window_size
         )
 
+        bridge.go_sync()
+
         while True:
-            bridge.world.wait_for_tick()
+            bridge.world.tick()
 
             if 'break' in pov.on_tick(bridge):
                 break
@@ -148,6 +150,7 @@ if __name__ == '__main__':
     # except Exception as e:
     #     print(e)
     finally:
+        bridge.go_async()
         if pov:
             pov.close()
         pygame.quit()

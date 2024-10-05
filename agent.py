@@ -1,6 +1,7 @@
 import carla
 
 import cars
+import router
 import traffic_light_manager
 from calculation_delegate import location_equal
 from controller import PIDController
@@ -11,10 +12,11 @@ class Agent(object):
     # noinspection PyArgumentList
     def __init__(
             self,
-            _npc_list,
+            _relevant_npc_list,
             _traffic_light_manager
     ):
-        self.npc_list = _npc_list
+        self.npc_list = _relevant_npc_list
+        self.npc_list_distances = None
         self.traffic_lights = _traffic_light_manager
         self.target_speed = 40
         self.safe_distance = 5.0
@@ -30,8 +32,9 @@ class Agent(object):
         )
 
     def __front_car_distance(self, next_dest: carla.Transform):
-
         for npc in self.npc_list:
+            npc: carla.Vehicle = npc
+
             if location_equal(
                     next_dest.location,
                     npc.transform.location,
@@ -44,7 +47,14 @@ class Agent(object):
                 )
         return False
 
-    def on_tick(self, _car: cars.Car, _tl_manager: traffic_light_manager.TrafficLights, _destination: carla.Location):
+    def on_tick(
+            self,
+            _car: cars.Car,
+            _router: router.Router,
+            _tl_manager: traffic_light_manager.TrafficLights,
+            _destination: carla.Location
+    ):
+
 
         # d_to_tl = _tl_manager.distance_to_targets[0]
         # d = 0.0

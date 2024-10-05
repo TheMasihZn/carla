@@ -14,7 +14,7 @@ class Car(object):
             lines = file.readlines()[1:]
 
         while True:
-            car_data = random.choice(lines[4:5]).split(',')
+            car_data = random.choice(lines).split(',')
             try:
                 self.actor = _bridge.spawn_actor(
                     _bridge.blueprint_library.filter(car_data[0])[0],

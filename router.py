@@ -9,7 +9,7 @@ from calculation_delegate import location_equal, distance_in_route
 class Router(object):
     def __init__(self, _bridge: CarlaBridge, route_file_path: str, spawn_hints: bool, route_z=0.1):
         self.spawn_hints = spawn_hints
-        self.path = self.__read_path_from_file(route_file_path, route_z)
+        self.path, self.road_lane_pairs = self.__read_path_from_file(_bridge, route_file_path, route_z)
         self.last_transform = self.path[0]
         self.route = []
         self.__current_index_in_route = 0
@@ -17,7 +17,7 @@ class Router(object):
         self.__hint_header = 0
         self.update_cache_route()
 
-    def on_tick(self, _current_transform: carla.Transform, _speed: float, _bridge: CarlaBridge):
+    def on_tick(self, _current_transform: carla.Transform, _bridge: CarlaBridge):
         if _current_transform != self.last_transform:
             self.last_transform = _current_transform
         for step in self.route:
@@ -33,20 +33,25 @@ class Router(object):
                 break
         self.update_cache_route()
         if self.spawn_hints:
-            self.draw_hints(_speed, _bridge)
+            self.draw_hints(_bridge)
 
     def next_destination(self):
         return self.route[0]
 
     # noinspection PyTypeChecker
     @staticmethod
-    def __read_path_from_file(route_file_path: str, route_z=0.1) -> list:
+    def __read_path_from_file(_bridge, route_file_path: str, route_z=0.1) -> list:
         _route = []
         for line in csv.DictReader(open(route_file_path, 'r')):
             rotation = carla.Rotation(float(line['pitch']), float(line['yaw']), float(line['roll']))
             location = carla.Location(float(line['x']), float(line['y']), route_z)
             transform = carla.Transform(location, rotation)
             _route.append(transform)
+
+        _road_lanes = set()
+        for transform in _route:
+            waypoint = _bridge.map.get_waypoint(transform.location)
+            _road_lanes.add((waypoint.road_id, waypoint.lane_id))
         return _route
 
     def update_cache_route(self, n_batch=50):
@@ -102,7 +107,7 @@ class Router(object):
         plt.show()
 
     def draw_hints(
-            self, _speed, _bridge,
+            self, _bridge,
             _color=carla.Color(r=0, g=125, b=125, a=125),
             n=20,
             resolution=2
@@ -119,17 +124,7 @@ class Router(object):
             _path += self.path[:_header_after]
 
         for i in range(1, len(_path)):
-            # division by n<1 = infinite time
-            # hint_distance = distance_in_route(self.__current_index_in_route, self.__hint_header, self.path)
-            # time_step = (_speed + 0.01) / resolution
-            # if _speed < 1:
-            #     _time = i * 0.5
-            # elif _speed < (hint_distance / resolution):
-            #     _time = i * time_step * 0.5
-            # else:
-            #     _time = hint_distance / (_speed + 0.01)
-
-            _time = i * 0.5
+            _time = i * 0.8
             _bridge.world.debug.draw_line(
                 begin=_path[i - 1].location,
                 end=_path[i].location,
