@@ -7,27 +7,10 @@ from carla import ColorConverter
 from carla.libcarla import TrafficLightState
 
 from numpy import random
-from cars import Car
+from cars import Ego, CarManager
 from router import Router
 from pov import POV
 from traffic_light_manager import TrafficLights
-
-
-def spawn_hero(
-        _bridge: bridge.CarlaBridge,
-        _spawn_point: carla.Transform
-) -> carla.Actor:
-    hero_bp = random.choice(_bridge.vehicle_blueprints)
-    hero_bp.set_attribute('role_name', 'hero')
-
-    hero = _bridge.spawn_actor(hero_bp, _spawn_point)
-
-    physics_control = hero.get_physics_control()
-    physics_control.use_sweep_wheel_collision = True
-    hero.apply_physics_control(physics_control)
-
-    return hero
-
 
 if __name__ == '__main__':
     bridge = bridge.CarlaBridge()
@@ -80,7 +63,7 @@ if __name__ == '__main__':
     pov = None
     try:
 
-        ego = Car(
+        ego = Ego(
             bridge,
             'models.csv',
             spawn_transform
@@ -127,17 +110,21 @@ if __name__ == '__main__':
 
         router = Router(bridge, route_file_path='route.csv', spawn_hints=True)
         tl_manager = TrafficLights(_bridge=bridge, _router=router, _initial_settings=traffic_lights)
+        car_manager = CarManager(
+            _bridge=bridge,
+            _models_file_path='models.csv',
+            _ego_spawn_point=spawn_transform,
+            _initial_traffic=20
+        )
         pov = POV(
             _spawn_transform=spawn_transform,
             _bridge=bridge,
             _router=router,
-            _car=ego,
+            _car_manager=car_manager,
             _sensor_list=sensor_list,
             _traffic_light_manager=tl_manager,
             _window_size=window_size
         )
-
-        bridge.spawn_teraffic(20)
 
         # bridge.go_sync()
 

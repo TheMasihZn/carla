@@ -28,12 +28,11 @@ class CarlaBridge(object):
         _blueprints = self.blueprint_library.filter('vehicle.*')
         self.vehicle_blueprints = [bp for bp in _blueprints if 'vehicle' in bp.tags]
 
-        self.npc_list = []
         self.hints = []
 
     def spawn_actor(self,
                     bp: carla.ActorBlueprint,
-                    point: carla.Transform,
+                    point: carla.Transform = None,
                     attach_to=None,
                     attachment_type=carla.AttachmentType.Rigid,
                     destroy_at_the_end=True
@@ -41,7 +40,8 @@ class CarlaBridge(object):
         if destroy_at_the_end:
             name = bp.get_attribute('role_name').as_str() + '__destroy'
             bp.set_attribute('role_name', name)
-        # point.location.z = 4.0
+        if not point:
+            point = random.choice(self.spawn_points)
         return self.world.spawn_actor(bp, point, attach_to, attachment_type)
 
     def get_actors(self, ids=None, filter_key=None):
@@ -82,23 +82,3 @@ class CarlaBridge(object):
         self.world.apply_settings(self.settings)
         print('sync')
 
-    def spawn_teraffic(self, n_cars):
-        while len(self.npc_list) < n_cars:
-            try:
-                blueprint = random.choice(self.vehicle_blueprints)
-                blueprint.set_attribute('role_name', 'npc')
-                # retry until a good spawn point
-                while True:
-                    point = random.choice(self.spawn_points)
-                    actor = self.spawn_actor(blueprint, point)
-                    if actor:
-                        self.npc_list.append(actor)
-                        break
-
-            except Exception as e:
-                if 'collision' not in str(e):
-                    print(e)
-
-        for npc in self.npc_list:
-            npc.set_autopilot(True)
-        print(f'spawned {n_cars} NPCs')

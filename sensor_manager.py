@@ -2,7 +2,7 @@ import numpy as np
 import carla
 
 from bridge import CarlaBridge
-from cars import Car
+from cars import Ego
 
 class SensorManager(object):
 
@@ -10,7 +10,7 @@ class SensorManager(object):
     def __init__(
             self,
             _bridge: CarlaBridge,
-            _car: Car,
+            _ego: Ego,
             sensors: list,
             window_size: dict
     ):
@@ -20,9 +20,9 @@ class SensorManager(object):
 
         # [:] makes a copy list
         self.sensors = sensors[:]
-        self.__spawn_sensors(_bridge, _car)
+        self.__spawn_sensors(_bridge, _ego)
 
-    def __spawn_sensors(self, _bridge: CarlaBridge, _car: Car):
+    def __spawn_sensors(self, _bridge: CarlaBridge, _ego: Ego):
         for i, sensor_data in enumerate(self.sensors):
 
             # add internal data parameters
@@ -39,8 +39,8 @@ class SensorManager(object):
 
             actor = _bridge.spawn_actor(
                 sensor_bp,
-                sensor_data['transform'],
-                attach_to=_car.actor,
+                point=sensor_data['transform'],
+                attach_to=_ego.actor,
                 attachment_type=sensor_data['attachment']
             )
 

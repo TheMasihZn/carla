@@ -40,14 +40,14 @@ class Agent(object):
             _raw_npc_list: list,
 
             _tl_manager: traffic_light_manager.TrafficLights,
-            _car: cars.Car,
+            _ego: cars.Ego,
             _destination: carla.Location,
 
             _debug_bridge:bridge.CarlaBridge = None
     ):
         should_break = False
 
-        npc_list, npc_distances = self.process_npc_list(_map=_map, _car= _car,  _router=_router, _npc_list=_raw_npc_list, _debug_bridge=_debug_bridge)
+        npc_list, npc_distances = self.process_npc_list(_map=_map, _ego= _ego, _router=_router, _npc_list=_raw_npc_list, _debug_bridge=_debug_bridge)
         if len(npc_list) > 0:
             nearest_npc = npc_list[0]
             npc_distance = npc_distances[nearest_npc]
@@ -108,20 +108,20 @@ class Agent(object):
         #
 
         control = self.pid.get_new_control(
-            _previous_control=_car.control,
+            _previous_control=_ego.control,
             _should_stop=should_break,
             _target_speed=self.target_speed,
-            _current_speed=_car.speed,
+            _current_speed=_ego.speed,
             _dest=_destination.location,
-            _now_at=_car.location,
-            _forward_v=_car.forward,
+            _now_at=_ego.location,
+            _forward_v=_ego.forward,
         )
-        _car.inject_control(control)
+        _ego.inject_control(control)
 
     @staticmethod
     def process_npc_list(
             _map: carla.Map,
-            _car: cars.Car,
+            _ego: cars.Ego,
             _router: router.Router,
             _npc_list: list,
             _debug_bridge:bridge.CarlaBridge = None
@@ -131,13 +131,16 @@ class Agent(object):
         for npc in _npc_list:
             npc_location = npc.get_location()
             npc_wp = _map.get_waypoint(npc_location)
-            if location_equal(_car.location, npc_location, 70):
+            car_wp = _map.get_waypoint(_ego.location)
+            if location_equal(_ego.location, npc_location, 70):
                 i_on_path = None
                 try:
                     i_on_path = _router.get_i_in_path(
-                        npc_location
+                        npc_location,
+                        threshold=3
                     )
-                except Exception: pass
+                except Exception:
+                    pass
                 if i_on_path:
                     _npc_distances[npc] = _router.distance_to_(i_on_path)
                     _relevant_npc_list.append(npc)

@@ -2,6 +2,7 @@ import carla
 import csv
 import matplotlib.pyplot as plt
 
+import car_manager
 from bridge import CarlaBridge
 from calculation_delegate import location_equal, distance_in_route
 
@@ -17,20 +18,28 @@ class Router(object):
         self.__hint_header = 0
         self.update_cache_route()
 
-    def on_tick(self, _current_transform: carla.Transform, _bridge: CarlaBridge):
-        if _current_transform != self.last_transform:
-            self.last_transform = _current_transform
-        for step in self.route:
-            if location_equal(
-                    step.location,
-                    _current_transform.location,
-                    1.5
-            ):
-                self.route.remove(step)
-                self.__current_index_in_route += 1
-                self.__current_index_in_route %= len(self.path)
-            else:
-                break
+    def on_tick(
+            self,
+            _car_manager: car_manager.CarManager,
+            _bridge: CarlaBridge
+    ):
+        if _car_manager.ego.transform != self.last_transform:
+            self.last_transform = _car_manager.ego.transform
+        for i, step in enumerate(self.route):
+            for car in [_car_manager.ego, *_car_manager.npc_list]:
+                if location_equal(
+                        step.location,
+                        car.location,
+                        1.5
+                ):
+                    car.i_on_path = i
+                    if isinstance(car, car_manager.Ego):
+                        self.route.remove(step)
+                        car.i_on_path %= len(self.path)
+                        self.__current_index_in_route = car.i_on_path
+                    elif isinstance(car, car_manager.NPC):
+                        car.distance_ego_to_car = self.distance_to_(car.i_on_path)
+
         self.update_cache_route()
         if self.spawn_hints:
             self.draw_hints(_bridge)
@@ -133,7 +142,7 @@ class Router(object):
             if self.__hint_header > len(self.path):
                 self.__hint_header -= len(self.path)
 
-    def get_i_in_path(self, actor_location: carla.Location, threshold = 5) -> int:
+    def get_i_in_path(self, actor_location: carla.Location, threshold=5) -> int:
         for i, step in enumerate(self.path):
             if location_equal(step.location, actor_location, threshold):
                 return i
