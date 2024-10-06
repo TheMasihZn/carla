@@ -28,12 +28,11 @@ class POV(object):
         self.sensor_manager = SensorManager(_bridge, self.car, _sensor_list, _window_size)
         self.traffic_light_manager = _traffic_light_manager
         self.router = _router
-        self.relevant_npc_list = []
         self.agent = Agent(_traffic_light_manager=self.traffic_light_manager)
 
     # noinspection PyArgumentList
     def on_tick(self, _bridge: CarlaBridge):
-        self.car.update_parameters()
+        self.car.update_parameters(_bridge.map)
         self.router.on_tick(self.car.transform, _bridge)
         self.traffic_light_manager.update_distances(self.router)
 
@@ -49,11 +48,12 @@ class POV(object):
 
         self.agent.on_tick(
             _map=_bridge.map,
-            _raw_npc_list=_bridge.npc_list,
+            _raw_npc_list=_bridge.npc_list[:],
             _router=self.router,
             _tl_manager=self.traffic_light_manager,
             _car=self.car,
-            _destination=self.router.next_destination()
+            _destination=self.router.next_destination(),
+            _debug_bridge=_bridge
         )
 
         self.hud.render(self.sensor_manager.sensors)

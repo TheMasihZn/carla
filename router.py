@@ -9,7 +9,7 @@ from calculation_delegate import location_equal, distance_in_route
 class Router(object):
     def __init__(self, _bridge: CarlaBridge, route_file_path: str, spawn_hints: bool, route_z=0.1):
         self.spawn_hints = spawn_hints
-        self.path, self.road_lane_pairs = self.__read_path_from_file(_bridge, route_file_path, route_z)
+        self.path = self.__read_path_from_file(_bridge, route_file_path, route_z)
         self.last_transform = self.path[0]
         self.route = []
         self.__current_index_in_route = 0
@@ -48,11 +48,7 @@ class Router(object):
             transform = carla.Transform(location, rotation)
             _route.append(transform)
 
-        _road_lane_pairs = set()
-        for transform in _route:
-            waypoint = _bridge.map.get_waypoint(transform.location)
-            _road_lane_pairs.add((waypoint.road_id, waypoint.lane_id))
-        return _route, _road_lane_pairs
+        return _route
 
     def update_cache_route(self, n_batch=50):
         if len(self.route) > n_batch / 2:
@@ -106,6 +102,7 @@ class Router(object):
         plt.ylabel("Y")
         plt.show()
 
+    # noinspection PyArgumentList
     def draw_hints(
             self, _bridge,
             _color=carla.Color(r=0, g=125, b=125, a=125),
@@ -136,9 +133,9 @@ class Router(object):
             if self.__hint_header > len(self.path):
                 self.__hint_header -= len(self.path)
 
-    def get_i_in_path(self, actor_location: carla.Location) -> int:
+    def get_i_in_path(self, actor_location: carla.Location, threshold = 5) -> int:
         for i, step in enumerate(self.path):
-            if location_equal(step.location, actor_location, 5):
+            if location_equal(step.location, actor_location, threshold):
                 return i
 
         raise Exception(

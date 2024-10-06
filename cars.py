@@ -42,20 +42,22 @@ class Car(object):
         self.control: carla.VehicleControl = None
         self.location: carla.Location = None
         self.rotation: carla.Rotation = None
+        self.waypoint: carla.Waypoint = None
         self.__i_in_path = 0
 
         self.speed = None
         self.speed_mps = None
 
-        self.update_parameters()
+        self.update_parameters(_bridge.map)
 
     # noinspection PyArgumentList
-    def update_parameters(self):
+    def update_parameters(self, _map: carla.Map):
         self.velocity = self.actor.get_velocity()
         self.transform = self.actor.get_transform()
         self.location = self.transform.location
         self.location.z = 0
         self.rotation = self.transform.rotation
+        self.waypoint = _map.get_waypoint(self.location)
         self.forward = self.rotation.get_forward_vector()
         self.control = self.actor.get_control()
         self.bounding_box = self.actor.bounding_box

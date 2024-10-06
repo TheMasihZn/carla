@@ -19,9 +19,12 @@ class PIDController(object):
             _now_at: carla.Location,
             _forward_v
     ):
-        if not _should_stop:
+        if _should_stop:
+            _previous_control.brake = 1
+        else:
             throttle_adjustment = self.accelerator.on_tick(_target_speed=_target_speed, speed=_current_speed)
             _previous_control.throttle = throttle_adjustment
+            _previous_control.brake = 0
 
         steer_adjustment = self.steer.on_tick(_dest=_dest, _now_at=_now_at, forward_v=_forward_v)
 

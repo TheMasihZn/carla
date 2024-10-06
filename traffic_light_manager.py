@@ -53,7 +53,8 @@ class TrafficLights(object):
                 _bridge.world.wait_for_tick()
                 self.__try_sync(to_sync)
 
-    def __try_sync(self, to_sync):
+    @staticmethod
+    def __try_sync(to_sync):
 
         for row in to_sync:
             actor, setting, others, yellow_time, green_time = row

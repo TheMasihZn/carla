@@ -1,5 +1,6 @@
 import carla
 
+import bridge
 import cars
 import router
 import traffic_light_manager
@@ -15,8 +16,10 @@ class Agent(object):
             _traffic_light_manager
     ):
         self.max_speed = 40
-        self.safe_distance = 5.0
         self.max_steer = 0.8
+        self.safe_distance = 5.0
+
+        self.target_speed = self.max_speed
 
         self.traffic_lights = _traffic_light_manager
 
@@ -38,28 +41,27 @@ class Agent(object):
 
             _tl_manager: traffic_light_manager.TrafficLights,
             _car: cars.Car,
-            _destination: carla.Location
+            _destination: carla.Location,
+
+            _debug_bridge:bridge.CarlaBridge = None
     ):
-        target_speed = self.max_speed
         should_break = False
 
-        npc_list, npc_distances = self.process_npc_list(_map=_map, _router=_router, _npc_list=_raw_npc_list)
+        npc_list, npc_distances = self.process_npc_list(_map=_map, _car= _car,  _router=_router, _npc_list=_raw_npc_list, _debug_bridge=_debug_bridge)
         if len(npc_list) > 0:
             nearest_npc = npc_list[0]
             npc_distance = npc_distances[nearest_npc]
+            npc_velocity = nearest_npc.get_velocity()
+            npc_speed = 3.6 * math.sqrt(npc_velocity.x ** 2 + npc_velocity.y ** 2)
 
             if npc_distance < self.safe_distance:
                 should_break = True
-                target_speed = 0
 
             elif npc_distance < 2 * self.safe_distance:
-                target_speed = 0
+                self.target_speed = npc_speed
 
-            elif npc_distance < 3 * self.safe_distance:
-                npc_velocity = nearest_npc.get_velocity()
-                npc_speed = 3.6 * math.sqrt(npc_velocity.x ** 2 + npc_velocity.y ** 2)
-                if npc_speed < _car.speed:
-                    target_speed = npc_speed
+            elif npc_distance > 6 * self.safe_distance:
+                self.target_speed = self.max_speed
 
         # d_to_tl = _tl_manager.distance_to_targets[0]
         # d = 0.0
@@ -108,7 +110,7 @@ class Agent(object):
         control = self.pid.get_new_control(
             _previous_control=_car.control,
             _should_stop=should_break,
-            _target_speed=target_speed,
+            _target_speed=self.target_speed,
             _current_speed=_car.speed,
             _dest=_destination.location,
             _now_at=_car.location,
@@ -119,21 +121,26 @@ class Agent(object):
     @staticmethod
     def process_npc_list(
             _map: carla.Map,
+            _car: cars.Car,
             _router: router.Router,
-            _npc_list: list
+            _npc_list: list,
+            _debug_bridge:bridge.CarlaBridge = None
     ):
         _relevant_npc_list = []
         _npc_distances = {}
         for npc in _npc_list:
             npc_location = npc.get_location()
-            wp = _map.get_waypoint(npc_location)
-            if (wp.road_id, wp.lane_id) in _router.road_lane_pairs:
-                _relevant_npc_list.append(npc)
-                _npc_distances[npc] = _router.distance_to_(
-                    _router.get_i_in_path(
-                        npc.get_location()
+            npc_wp = _map.get_waypoint(npc_location)
+            if location_equal(_car.location, npc_location, 70):
+                i_on_path = None
+                try:
+                    i_on_path = _router.get_i_in_path(
+                        npc_location
                     )
-                )
+                except Exception: pass
+                if i_on_path:
+                    _npc_distances[npc] = _router.distance_to_(i_on_path)
+                    _relevant_npc_list.append(npc)
         sorted(
             _relevant_npc_list,
             key=lambda k: _npc_distances[k]
