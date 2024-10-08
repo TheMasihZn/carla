@@ -63,9 +63,9 @@ class Agent(object):
             elif npc.distance_ego_to_car > 6 * self.safe_distance:
                 self.target_speed = self.max_speed
 
-        # if self.traffic_lights.targets[0].get_state() == carla.TrafficLightState.Red:
-        #     if location_equal(_ego.location, self.traffic_lights.targets[0].get_location(), 7 * self.safe_distance):
-        #         should_break = True
+        if self.traffic_lights.targets[0].get_state() == carla.TrafficLightState.Red:
+            if location_equal(_ego.location, self.traffic_lights.targets[0].get_location(), 7 * self.safe_distance):
+                should_break = True
 
         control = self.pid.get_new_control(
             _previous_control=_ego.control,
