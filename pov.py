@@ -32,7 +32,6 @@ class POV(object):
         self.router = _router
         self.agent = Agent(_traffic_light_manager=self.traffic_light_manager)
 
-    # noinspection PyArgumentList
     def on_tick(self, _bridge: CarlaBridge):
         self.car_manager.on_tick()
         self.router.on_tick(self.car_manager, _bridge)

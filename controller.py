@@ -21,6 +21,7 @@ class PIDController(object):
     ):
         if _should_stop:
             _previous_control.brake = 1
+            _previous_control.throttle = 0
         else:
             throttle_adjustment = self.accelerator.on_tick(_target_speed=_target_speed, speed=_current_speed)
             _previous_control.throttle = throttle_adjustment

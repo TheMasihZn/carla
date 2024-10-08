@@ -31,7 +31,7 @@ class CarManager:
         self.ego: cars.Ego = None
 
         if not self.ego:
-            data = self.car_data[np.random.choice(range(len(self.car_data)))]
+            data = self.car_data[0]
             blueprint = data[-1]
             blueprint.set_attribute('role_name', 'hero')
             actor = self.__spawn_car_actor(_bridge, blueprint, _ego_spawn_point)

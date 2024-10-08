@@ -15,6 +15,7 @@ class Router(object):
         self.last_transform = self.path[0]
         self.route = []
         self.__current_index_in_route = 0
+        self.__has_ego_been_updated = False
         self.__route_header = 0
         self.__hint_header = 0
         self.update_cache_route()
@@ -24,22 +25,27 @@ class Router(object):
             _car_manager: car_manager.CarManager,
             _bridge: CarlaBridge
     ):
-        if _car_manager.ego.transform != self.last_transform:
-            self.last_transform = _car_manager.ego.transform
-        for i, step in enumerate(self.route):
-            for car in [_car_manager.ego, *_car_manager.npc_list]:
+        for step in self.route:
+            if _car_manager.ego.transform != self.last_transform:
+                self.last_transform = _car_manager.ego.transform
+                if location_equal(
+                        step.location,
+                        _car_manager.ego.location,
+                        1.5
+                ):
+                    _car_manager.ego.i_on_path = self.path.index(step)
+                    self.__current_index_in_route = _car_manager.ego.i_on_path
+                    if step in self.route:
+                        self.route.remove(step)
+
+            for car in _car_manager.npc_list:
                 if location_equal(
                         step.location,
                         car.location,
                         1.5
                 ):
-                    car.i_on_path = i
-                    if isinstance(car, cars.Ego):
-                        self.route.remove(step)
-                        car.i_on_path %= len(self.path)
-                        self.__current_index_in_route = car.i_on_path
-                    elif isinstance(car, cars.NPC):
-                        car.distance_ego_to_car = self.distance_to_(car.i_on_path)
+                    car.i_on_path = self.path.index(step)
+                    car.distance_ego_to_car = self.distance_to_(car.i_on_path)
 
         self.update_cache_route()
         if self.spawn_hints:
