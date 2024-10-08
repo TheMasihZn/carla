@@ -37,30 +37,30 @@ class Agent(object):
 
             _map: carla.Map,
             _router: router.Router,
-            _raw_npc_list: list,
+            _npc_list: list,
 
             _tl_manager: traffic_light_manager.TrafficLights,
             _ego: cars.Ego,
             _destination: carla.Location,
 
-            _debug_bridge:bridge.CarlaBridge = None
+            _debug_bridge: bridge.CarlaBridge = None
     ):
         should_break = False
 
-        npc_list, npc_distances = self.process_npc_list(_map=_map, _ego= _ego, _router=_router, _npc_list=_raw_npc_list, _debug_bridge=_debug_bridge)
-        if len(npc_list) > 0:
-            nearest_npc: cars.NPC = npc_list[0]
-            npc_distance = npc_distances[nearest_npc]
-            npc_velocity = nearest_npc.velocity
-            npc_speed = 3.6 * math.sqrt(npc_velocity.x ** 2 + npc_velocity.y ** 2)
-
-            if npc_distance < self.safe_distance:
+        relevant_npc_list = [n for n in _npc_list if n.distance_ego_to_car > 0]
+        sorted(
+            relevant_npc_list,
+            key=lambda _npc: _npc.distance_ego_to_car
+        )
+        if len(relevant_npc_list) > 0:
+            npc: cars.NPC = relevant_npc_list[0]
+            if npc.distance_ego_to_car < self.safe_distance:
                 should_break = True
 
-            elif npc_distance < 2 * self.safe_distance:
-                self.target_speed = npc_speed
+            elif npc.distance_ego_to_car < 2 * self.safe_distance:
+                self.target_speed = npc.speed
 
-            elif npc_distance > 6 * self.safe_distance:
+            elif npc.distance_ego_to_car > 6 * self.safe_distance:
                 self.target_speed = self.max_speed
 
         # d_to_tl = _tl_manager.distance_to_targets[0]
@@ -117,34 +117,3 @@ class Agent(object):
             _forward_v=_ego.forward,
         )
         _ego.inject_control(control)
-
-    @staticmethod
-    def process_npc_list(
-            _map: carla.Map,
-            _ego: cars.Ego,
-            _router: router.Router,
-            _npc_list: list,
-            _debug_bridge:bridge.CarlaBridge = None
-    ):
-        _relevant_npc_list = []
-        _npc_distances = {}
-        for npc in _npc_list:
-            npc_location = npc.location
-            if location_equal(_ego.location, npc_location, 70):
-                i_on_path = None
-                try:
-                    i_on_path = _router.get_i_in_path(
-                        npc_location,
-                        threshold=3
-                    )
-                except Exception as e:
-                    if 'path' in str(e):
-                        pass
-                if i_on_path:
-                    _npc_distances[npc] = _router.distance_to_(i_on_path)
-                    _relevant_npc_list.append(npc)
-        sorted(
-            _relevant_npc_list,
-            key=lambda k: _npc_distances[k]
-        )
-        return _relevant_npc_list, _npc_distances

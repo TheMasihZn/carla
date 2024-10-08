@@ -50,7 +50,7 @@ class POV(object):
 
         self.agent.on_tick(
             _map=_bridge.map,
-            _raw_npc_list=self.car_manager.npc_list,
+            _npc_list=self.car_manager.npc_list,
             _router=self.router,
             _tl_manager=self.traffic_light_manager,
             _ego=self.car_manager.ego,
