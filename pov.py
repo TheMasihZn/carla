@@ -1,6 +1,7 @@
 import carla
 import random
 
+import car_manager
 import cars
 from bridge import CarlaBridge
 from cars import Ego
@@ -19,7 +20,7 @@ class POV(object):
             _bridge: CarlaBridge,
             _spawn_transform: carla.Transform,
             _router: Router,
-            _car_manager: cars.CarManager,
+            _car_manager: car_manager.CarManager,
             _sensor_list: list,
             _traffic_light_manager: TrafficLights,
             _window_size: dict

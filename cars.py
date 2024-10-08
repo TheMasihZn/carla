@@ -43,7 +43,7 @@ class Car:
 
 class Ego(Car):
     # noinspection PyTypeChecker
-    def __init__(self, actor: carla.Actor, data: list):
+    def __init__(self, actor: carla.Actor, data: list, _mimic_human_control: bool):
         super().__init__(actor, data)
 
         phys = self.actor.get_physics_control()
@@ -57,6 +57,7 @@ class Ego(Car):
         self.damping_rate_full_throttle = phys.damping_rate_full_throttle
         self.should_stop_in = None
         self.control: carla.VehicleControl = None
+        self.mimic_human = _mimic_human_control
 
         self._update_parameters()
 
@@ -74,7 +75,9 @@ class Ego(Car):
                 self.bounding_box.extent.x / 2)
 
     def inject_control(self, control: carla.VehicleControl):
-        self.actor.apply_control(control)
+        if not self.mimic_human:
+            self.actor.apply_control(control)
+
 
 class NPC(Car):
     def __init__(self, actor: carla.Actor, data: list):

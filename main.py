@@ -7,7 +7,8 @@ from carla import ColorConverter
 from carla.libcarla import TrafficLightState
 
 from numpy import random
-from cars import Ego, CarManager
+from cars import Ego
+from car_manager import CarManager
 from router import Router
 from pov import POV
 from traffic_light_manager import TrafficLights
@@ -62,16 +63,17 @@ if __name__ == '__main__':
 
     pov = None
     try:
-
-        ego = Ego(
-            bridge,
-            'models.csv',
-            spawn_transform
+        car_manager = CarManager(
+            _bridge=bridge,
+            _models_file_path='models.csv',
+            _ego_spawn_point=spawn_transform,
+            _mimic_human_control=True,
+            _initial_traffic=20
         )
 
-        bound_x = 0.5 + ego.bounding_box.extent.x
-        bound_y = 0.5 + ego.bounding_box.extent.y
-        bound_z = 0.5 + ego.bounding_box.extent.z
+        bound_x = 0.5 + car_manager.ego.bounding_box.extent.x
+        bound_y = 0.5 + car_manager.ego.bounding_box.extent.y
+        bound_z = 0.5 + car_manager.ego.bounding_box.extent.z
 
         sensor_list = [
             {
@@ -110,12 +112,6 @@ if __name__ == '__main__':
 
         router = Router(bridge, route_file_path='route.csv', spawn_hints=True)
         tl_manager = TrafficLights(_bridge=bridge, _router=router, _initial_settings=traffic_lights)
-        car_manager = CarManager(
-            _bridge=bridge,
-            _models_file_path='models.csv',
-            _ego_spawn_point=spawn_transform,
-            _initial_traffic=20
-        )
         pov = POV(
             _spawn_transform=spawn_transform,
             _bridge=bridge,

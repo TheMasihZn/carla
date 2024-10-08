@@ -13,7 +13,8 @@ class CarManager:
             _bridge: CarlaBridge,
             _models_file_path: str,
             _ego_spawn_point: carla.Transform,
-            _initial_traffic: int = 0,
+            _mimic_human_control: bool,
+            _initial_traffic: int = 0
     ):
         self.car_blueprints = {}
 
@@ -31,6 +32,8 @@ class CarManager:
             blueprint = self.car_blueprints[data]
             blueprint.set_attribute('role_name', 'hero')
             actor = self.__spawn_car_actor(_bridge, blueprint, _ego_spawn_point)
+            if _mimic_human_control:
+                actor.set_autopilot(True)
             self.ego = Ego(actor=actor, data=data)
             print('Ego spawned')
 
@@ -42,7 +45,6 @@ class CarManager:
             actor.set_autopilot(True)
             self.npc_list.append(NPC(actor=actor, data=data))
         print(f'{_initial_traffic} NPCs spawned')
-
 
     @staticmethod
     def __spawn_car_actor(_bridge, _blueprint, _spawn_point=None):
