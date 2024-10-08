@@ -27,15 +27,15 @@ class POV(object):
     ):
         self.hud = HUD(_window_size['height'], _window_size['width'])
         self.car_manager = _car_manager
-        self.sensor_manager = SensorManager(_bridge, self.car_manager.ego.actor, _sensor_list, _window_size)
+        self.sensor_manager = SensorManager(_bridge, self.car_manager.ego, _sensor_list, _window_size)
         self.traffic_light_manager = _traffic_light_manager
         self.router = _router
         self.agent = Agent(_traffic_light_manager=self.traffic_light_manager)
 
     # noinspection PyArgumentList
     def on_tick(self, _bridge: CarlaBridge):
-        self.car_manager.on_tick(_bridge.map)
-        self.router.on_tick(self.car_manager.ego.transform, _bridge)
+        self.car_manager.on_tick()
+        self.router.on_tick(self.car_manager, _bridge)
         self.traffic_light_manager.update_distances(self.router)
 
         self.hud.update_text(

@@ -49,9 +49,9 @@ class Agent(object):
 
         npc_list, npc_distances = self.process_npc_list(_map=_map, _ego= _ego, _router=_router, _npc_list=_raw_npc_list, _debug_bridge=_debug_bridge)
         if len(npc_list) > 0:
-            nearest_npc = npc_list[0]
+            nearest_npc: cars.NPC = npc_list[0]
             npc_distance = npc_distances[nearest_npc]
-            npc_velocity = nearest_npc.get_velocity()
+            npc_velocity = nearest_npc.velocity
             npc_speed = 3.6 * math.sqrt(npc_velocity.x ** 2 + npc_velocity.y ** 2)
 
             if npc_distance < self.safe_distance:
@@ -129,9 +129,7 @@ class Agent(object):
         _relevant_npc_list = []
         _npc_distances = {}
         for npc in _npc_list:
-            npc_location = npc.get_location()
-            npc_wp = _map.get_waypoint(npc_location)
-            car_wp = _map.get_waypoint(_ego.location)
+            npc_location = npc.location
             if location_equal(_ego.location, npc_location, 70):
                 i_on_path = None
                 try:
@@ -139,8 +137,9 @@ class Agent(object):
                         npc_location,
                         threshold=3
                     )
-                except Exception:
-                    pass
+                except Exception as e:
+                    if 'path' in str(e):
+                        pass
                 if i_on_path:
                     _npc_distances[npc] = _router.distance_to_(i_on_path)
                     _relevant_npc_list.append(npc)

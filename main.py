@@ -67,7 +67,6 @@ if __name__ == '__main__':
             _bridge=bridge,
             _models_file_path='models.csv',
             _ego_spawn_point=spawn_transform,
-            _mimic_human_control=True,
             _initial_traffic=20
         )
 

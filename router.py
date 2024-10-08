@@ -3,6 +3,7 @@ import csv
 import matplotlib.pyplot as plt
 
 import car_manager
+import cars
 from bridge import CarlaBridge
 from calculation_delegate import location_equal, distance_in_route
 
@@ -33,11 +34,11 @@ class Router(object):
                         1.5
                 ):
                     car.i_on_path = i
-                    if isinstance(car, car_manager.Ego):
+                    if isinstance(car, cars.Ego):
                         self.route.remove(step)
                         car.i_on_path %= len(self.path)
                         self.__current_index_in_route = car.i_on_path
-                    elif isinstance(car, car_manager.NPC):
+                    elif isinstance(car, cars.NPC):
                         car.distance_ego_to_car = self.distance_to_(car.i_on_path)
 
         self.update_cache_route()

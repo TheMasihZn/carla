@@ -1,7 +1,7 @@
 import numpy as np
 
 from bridge import CarlaBridge
-from cars import Ego, NPC
+import cars
 
 import carla
 
@@ -13,37 +13,38 @@ class CarManager:
             _bridge: CarlaBridge,
             _models_file_path: str,
             _ego_spawn_point: carla.Transform,
-            _mimic_human_control: bool,
             _initial_traffic: int = 0
     ):
-        self.car_blueprints = {}
+        self.car_data = []
 
         with open(_models_file_path, 'r') as file:
             lines = file.readlines()[1:]
             for line_str in lines:
-                line = line_str.split(',')
-                self.car_blueprints[line] = _bridge.blueprint_library.filter(line[0])[0]
+                try:
+                    line = line_str.split(',')
+                    bp = _bridge.blueprint_library.filter(line[0])[0]
+                    self.car_data.append([*line, bp])
+                except IndexError:
+                    pass
 
         self.npc_list = []
-        self.ego: Ego = None
+        self.ego: cars.Ego = None
 
         if not self.ego:
-            data = np.random.choice(self.car_blueprints)
-            blueprint = self.car_blueprints[data]
+            data = self.car_data[np.random.choice(range(len(self.car_data)))]
+            blueprint = data[-1]
             blueprint.set_attribute('role_name', 'hero')
             actor = self.__spawn_car_actor(_bridge, blueprint, _ego_spawn_point)
-            if _mimic_human_control:
-                actor.set_autopilot(True)
-            self.ego = Ego(actor=actor, data=data)
+            self.ego = cars.Ego(actor=actor, data=data[:-1])
             print('Ego spawned')
 
         while len(self.npc_list) < _initial_traffic:
-            data = np.random.choice(self.car_blueprints)
-            blueprint = self.car_blueprints[data]
+            data = self.car_data[np.random.choice(range(len(self.car_data)))]
+            blueprint = data[-1]
             blueprint.set_attribute('role_name', 'npc')
             actor = self.__spawn_car_actor(_bridge, blueprint)
             actor.set_autopilot(True)
-            self.npc_list.append(NPC(actor=actor, data=data))
+            self.npc_list.append(cars.NPC(actor=actor, data=data[:-1]))
         print(f'{_initial_traffic} NPCs spawned')
 
     @staticmethod
