@@ -23,7 +23,7 @@ class FuelTank(object):
         a = _ego.acceleration
         m = _ego.mass
         r_t = self.r_of_t(_ego)
-        epsilon = _ego.
+        epsilon = _ego.gear
 
         return (
             self.r_of_t(_ego) + _ego.mass * _ego.acceleration *
