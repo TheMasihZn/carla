@@ -16,6 +16,7 @@ class Car:
         self.max_rpm: float = float(data[2])
         self.bounding_box: carla.BoundingBox = None
         self.velocity: carla.Vector3D = None
+        self.acceleration: float = 0.0
         self.transform: carla.Transform = None
         self.forward: carla.Vector3D = None
         self.location: carla.Location = None
@@ -37,7 +38,11 @@ class Car:
         self.rotation = self.transform.rotation
         self.forward = self.rotation.get_forward_vector()
         self.bounding_box = self.actor.bounding_box
-        self.speed_mps = math.sqrt(self.velocity.x ** 2 + self.velocity.y ** 2)
+        _new_speed_mps = math.sqrt(self.velocity.x ** 2 + self.velocity.y ** 2)
+        if self.speed_mps:
+            if _new_speed_mps != self.speed_mps:
+                self.acceleration = (self.speed_mps + _new_speed_mps) / 2
+        self.speed_mps = _new_speed_mps
         self.speed = 3.6 * self.speed_mps
 
 
@@ -51,6 +56,7 @@ class Ego(Car):
         actor.apply_physics_control(phys)
 
         self.mass = phys.mass
+        self.gear = None
         self.drag = phys.drag_coefficient
         self.max_rpm = phys.max_rpm
         self.damping_rate_zero_throttle_clutch_engaged = phys.damping_rate_zero_throttle_clutch_engaged
@@ -63,6 +69,7 @@ class Ego(Car):
     def update_parameters(self):
         super()._update_parameters()
         self.control = self.actor.get_control()
+        self.gear = self.control.gear
         self.should_stop_in = (
                 (self.speed
                  / (
