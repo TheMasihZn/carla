@@ -25,12 +25,12 @@ class FuelTank(object):
         r_t = self.r_of_t(_ego)
         epsilon = _ego.gear
 
-        return (
-            self.r_of_t(_ego) + _ego.mass * _ego.acceleration *
-            (1.04 + 0.0025 * )
-            /
-            (3600 * )
-        )
+        # return (
+        #     self.r_of_t(_ego) + _ego.mass * _ego.acceleration *
+        #     (1.04 + 0.0025 * )
+        #     /
+        #     (3600 * )
+        # )
 
     # eq3
     def r_of_t(self, _ego: cars.Ego):
