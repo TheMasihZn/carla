@@ -54,6 +54,11 @@ class Router(object):
     def next_destination(self):
         return self.route[0]
 
+    def next_(self, n: int):
+        if n > len(self.route):
+            return self.route[:]
+        return self.route[0:n + 1]
+
     # noinspection PyTypeChecker
     @staticmethod
     def __read_path_from_file(_bridge, route_file_path: str, route_z=0.1) -> list:

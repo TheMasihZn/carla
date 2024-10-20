@@ -121,11 +121,11 @@ if __name__ == '__main__':
             _window_size=window_size
         )
 
-        # bridge.go_sync()
+        bridge.go_sync()
 
         while True:
-            # bridge.world.tick()
-            bridge.world.wait_for_tick()
+            bridge.world.tick()
+            # bridge.world.wait_for_tick()
 
             if 'break' in pov.on_tick(bridge):
                 break
@@ -135,7 +135,7 @@ if __name__ == '__main__':
     # except Exception as e:
     #     print(e)
     finally:
-        # bridge.go_async()
+        bridge.go_async()
         if pov:
             pov.close()
         pygame.quit()

@@ -7,7 +7,7 @@ from bridge import CarlaBridge
 from cars import Ego
 from sensor_manager import SensorManager
 from hud import HUD
-from agent import Agent
+from mpc_agent import MPCAgent
 from router import Router
 from traffic_light_manager import TrafficLights
 
@@ -30,34 +30,30 @@ class POV(object):
         self.sensor_manager = SensorManager(_bridge, self.car_manager.ego, _sensor_list, _window_size)
         self.traffic_light_manager = _traffic_light_manager
         self.router = _router
-        self.agent = Agent(_traffic_light_manager=self.traffic_light_manager)
+        self.agent = MPCAgent(_traffic_light_manager=self.traffic_light_manager)
 
     def on_tick(self, _bridge: CarlaBridge):
         self.car_manager.on_tick()
         self.router.on_tick(self.car_manager, _bridge)
-        self.traffic_light_manager.update_distances(self.router)
+        self.traffic_light_manager.on_tick(self.router)
+
+        if self.hud.window_closed:
+            return 'break'
+
+        self.agent.on_tick(
+            _car_manager=self.car_manager.npc_list,
+            _tl_manager=self.traffic_light_manager,
+            _router=self.router,
+            _debug_bridge=_bridge
+        )
 
         self.hud.update_text(
             self.sensor_manager.sensors,
             self.car_manager.ego,
             self.traffic_light_manager
         )
-        self.hud.on_tick()
-
-        if self.hud.window_closed:
-            return 'break'
-
-        self.agent.on_tick(
-            _map=_bridge.map,
-            _npc_list=self.car_manager.npc_list,
-            _router=self.router,
-            _tl_manager=self.traffic_light_manager,
-            _ego=self.car_manager.ego,
-            _destination=self.router.next_destination(),
-            _debug_bridge=_bridge
-        )
-
         self.hud.render(self.sensor_manager.sensors)
+        self.hud.on_tick()
 
         return ''
 
