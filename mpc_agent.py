@@ -44,7 +44,7 @@ class MPCAgent(object):
             _debug_bridge: bridge.CarlaBridge = None
     ):
         controls = [_car_manager.ego.control]
-        next_destinations = _router.next_(10)
+        next_destinations = _router.next_(5)
 
         for projection_step in range(len(next_destinations)):
             should_break = False

@@ -12,6 +12,7 @@ class Light:
     def __init__(
             self,
             _actor: carla.TrafficLight,
+            _name: str,
             _i_in_path: int,
             _initial_state: carla.TrafficLightState,
             _green_time: float,
@@ -19,7 +20,9 @@ class Light:
             _red_time: float,
     ):
         self.actor: carla.TrafficLight = _actor
+        self.name: str = _name
         self.initial_state: carla.TrafficLightState = _initial_state
+        self.location: carla.Location = self.actor.get_location()
         self.i_in_path: int = _i_in_path
         self.green_time: float = _green_time
         self.yellow_time: float = _yellow_time
@@ -88,6 +91,7 @@ class TrafficLights(object):
             self.targets.append(
                 Light(
                     actor,
+                    i,
                     i_in_path,
                     self.settings[i]['initial_state'],
                     self.settings[i]['green_time'],

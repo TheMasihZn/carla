@@ -2,6 +2,7 @@ import math
 import queue
 import threading
 
+import carla
 import numpy as np
 import pygame
 from pygame.locals import (KMOD_CTRL, K_ESCAPE, K_q, K_c, WINDOWMOVED)
@@ -99,9 +100,9 @@ class HUD(object):
                     # v_offset -= (len(item[1].targets) * 18) + (box_dim // 2)
                     for light in item[1].targets:
                         rect = pygame.Rect((bar_h_offset, v_offset), (box_dim, box_dim))
-                        pygame.draw.rect(self.display, light.get_state().__str__(), rect, 0 if item[1] else 1)
+                        pygame.draw.rect(self.display, light.state.__str__(), rect, 0 if item[1] else 1)
                         text = self.font.render(
-                            "id: %3i  in % 5.0f m" % (light.id, light.distance_from_ego),
+                            "id: %3i  in % 5.0f m" % (light.name, light.distance_from_ego),
                             True, (255, 255, 255)
                         )
                         self.display.blit(text, (bar_h_offset + 8 + box_dim, v_offset - 3))
