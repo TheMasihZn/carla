@@ -16,19 +16,21 @@ from traffic_light_manager import TrafficLights
 if __name__ == '__main__':
     bridge = bridge.CarlaBridge()
 
-    bridge.spectator.set_transform(
-        carla.Transform(
-            carla.Location(
-                x=-70.172501,
-                y=128.424377,
-                z=99.078232
-            ), carla.Rotation(
-                pitch=-56.843441,
-                yaw=-51.880329,
-                roll=0.000022
-            )
-        )
-    )
+    # bridge.spectator.set_transform(
+    #     carla.Transform(
+    #         carla.Location(
+    #             x=-70.172501,
+    #             y=128.424377,
+    #             z=99.078232
+    #         ), carla.Rotation(
+    #             pitch=-56.843441,
+    #             yaw=-51.880329,
+    #             roll=0.000022
+    #         )
+    #     )
+    # )
+
+
     # bridge.spectator.set_transform(
     #     carla.Transform(
     #         carla.Location(x=104.854881, y=36.462254, z=3.997350),
@@ -121,11 +123,11 @@ if __name__ == '__main__':
             _window_size=window_size
         )
 
-        bridge.go_sync()
+        # bridge.go_sync()
 
         while True:
-            bridge.world.tick()
-            # bridge.world.wait_for_tick()
+            # bridge.world.tick()
+            bridge.world.wait_for_tick()
 
             if 'break' in pov.on_tick(bridge):
                 break
@@ -135,7 +137,7 @@ if __name__ == '__main__':
     # except Exception as e:
     #     print(e)
     finally:
-        bridge.go_async()
+        # bridge.go_async()
         if pov:
             pov.close()
         pygame.quit()

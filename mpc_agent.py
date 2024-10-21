@@ -73,8 +73,9 @@ class MPCAgent(object):
                 elif d > 6 * self.safe_distance:
                     self.target_speed = self.max_speed
 
-            if self.traffic_lights.targets[0].get_state() == carla.TrafficLightState.Red:
-                if location_equal(_car_manager.ego.location, self.traffic_lights.targets[0].get_location(),
+            next_light = self.traffic_lights.targets[0]
+            if next_light.state == carla.TrafficLightState.Red:
+                if location_equal(_car_manager.ego.location, next_light.location,
                                   7 * self.safe_distance):
                     should_break = True
 
@@ -89,4 +90,4 @@ class MPCAgent(object):
             )
             controls.append(control)
         #     todo choose a good control
-        _car_manager.ego.inject_control(control)
+        _car_manager.ego.inject_control(controls[0])

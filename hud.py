@@ -84,16 +84,26 @@ class HUD(object):
                     rect = pygame.Rect((bar_h_offset, v_offset + 8), (box_dim, box_dim))
                     pygame.draw.rect(self.display, (255, 255, 255), rect, 0 if item[1] else 1)
                 elif isinstance(item[1], traffic_light_manager.TrafficLights):
-                    dist_light_zip = sorted(
-                        zip(
-                            item[1].distance_to_targets,
-                            item[1].targets
-                        ),
-                        key=lambda tup: tup[0])
-                    for distance, light in dist_light_zip:
+                    # dist_light_zip = sorted(
+                    #     zip(
+                    #         item[1].distance_to_targets,
+                    #         item[1].targets
+                    #     ),
+                    #     key=lambda tup: tup[0])
+                    # for distance, light in dist_light_zip:
+                    #     rect = pygame.Rect((bar_h_offset, v_offset), (box_dim, box_dim))
+                    #     pygame.draw.rect(self.display, light.get_state().__str__(), rect, 0 if item[1] else 1)
+                    #     text = self.font.render("id: %3i  in % 5.0f m" % (light.id, distance), True, (255, 255, 255))
+                    #     self.display.blit(text, (bar_h_offset + 8 + box_dim, v_offset - 3))
+                    #     v_offset += 18
+                    # v_offset -= (len(item[1].targets) * 18) + (box_dim // 2)
+                    for light in item[1].targets:
                         rect = pygame.Rect((bar_h_offset, v_offset), (box_dim, box_dim))
                         pygame.draw.rect(self.display, light.get_state().__str__(), rect, 0 if item[1] else 1)
-                        text = self.font.render("id: %3i  in % 5.0f m" % (light.id, distance), True, (255, 255, 255))
+                        text = self.font.render(
+                            "id: %3i  in % 5.0f m" % (light.id, light.distance_from_ego),
+                            True, (255, 255, 255)
+                        )
                         self.display.blit(text, (bar_h_offset + 8 + box_dim, v_offset - 3))
                         v_offset += 18
                     v_offset -= (len(item[1].targets) * 18) + (box_dim // 2)

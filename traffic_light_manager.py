@@ -7,6 +7,7 @@ from router import Router
 from calculation_delegate import distance_in_route
 
 
+
 class Light:
     def __init__(
             self,
@@ -29,17 +30,15 @@ class Light:
 
         self.__last_elapsed_time = 0.0
         self.is_synced = False
-        self.sync_group()
 
-        self.__group = self.actor.get_group_traffic_lights()
-        self.__others = [*self.__group]
-        self.__others.remove(self.actor)
-        for tl in self.__group:
+        self._group = self.actor.get_group_traffic_lights()
+        self._dependant_lights = [tl for tl in self._group if tl.id != self.actor.id]
+        for tl in self._group:
             tl.set_green_time(0.05)
             tl.set_yellow_time(0.05)
             tl.set_red_time(0.05)
 
-        others_n = len(self.__others)
+        others_n = len(self._dependant_lights)
         self.__others_yellow_time = 2.0
         self.__others_green_time = (self.red_time - self.__others_yellow_time * others_n) / others_n
 
@@ -58,13 +57,13 @@ class Light:
         self.__last_elapsed_time = current_elapsed_time
         self.distance_from_ego = _router.distance_to_(self.i_in_path)
 
-    def sync_group(self):
+    def sync_group_and_apply_settings(self):
         if not self.actor.is_frozen() and self.actor.get_state() == self.initial_state:
             self.actor.set_green_time(self.green_time)
             self.actor.set_yellow_time(self.yellow_time)
             # red time is defined by other's g and y in group
             self.actor.set_red_time(0)
-            for tl in self.__others:
+            for tl in self._dependant_lights:
                 tl.set_green_time(self.__others_green_time)
                 tl.set_yellow_time(self.__others_yellow_time)
                 tl.set_red_time(0)
@@ -78,7 +77,6 @@ class TrafficLights(object):
         self.settings = _initial_settings
         self.all = _bridge.get_actors(filter_key='traffic.traffic_light')
         self.targets = []
-        self.targets_time_elapsed_to_green = []
         self.__targets_i_in_path = []
 
         # iterating dict gives keys
@@ -103,27 +101,9 @@ class TrafficLights(object):
             if not tl.is_synced:
                 while not tl.is_synced:
                     _bridge.world.wait_for_tick()
-                    tl.sync_group()
+                    tl.sync_group_and_apply_settings()
 
     def on_tick(self, _router: Router):
         for tl in self.targets:
             tl.on_tick(_router)
         sorted(self.targets, key=lambda l: l.distance_from_ego)
-        params = []
-        for _i, target_i in enumerate(self.__targets_i_in_path):
-            params.append(
-                (
-                    target_i,
-                    _router.distance_to_(target_i),
-                    self.targets[_i],
-                    self.targets_time_elapsed_to_green[_i],
-                    self.__targets_total_cycle_time[_i]
-                )
-            )
-
-        for p_i_in_path, p_distance, p_light, p_green_time, g_total_time in sorted(params, key=lambda p: p[1]):
-            self.__targets_i_in_path.append(p_i_in_path)
-            self.distance_to_targets.append(p_distance)
-            self.targets.append(p_light)
-            self.__targets_total_cycle_time.append(g_total_time)
-            self.targets_time_elapsed_to_green.append((p_green_time + self.__step_delta_t) % g_total_time)
