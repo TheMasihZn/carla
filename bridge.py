@@ -8,6 +8,7 @@ random.seed(0)
 class CarlaBridge(object):
 
     def __init__(self):
+        self.tick_dt = 0.02173913043478260869565217391304
         self.client = carla.Client('127.0.0.1', 2000)
         self.world: carla.World = self.client.get_world()
         self.settings: carla.WorldSettings = self.world.get_settings()
@@ -78,7 +79,7 @@ class CarlaBridge(object):
     def go_sync(self):
         self.traffic_manager.set_synchronous_mode(True)
         self.settings.synchronous_mode = True
-        self.settings.fixed_delta_seconds = 0.02
+        self.settings.fixed_delta_seconds = self.tick_dt
         self.world.apply_settings(self.settings)
         print('sync')
 

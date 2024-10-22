@@ -15,7 +15,8 @@ class MPCAgent(object):
     # noinspection PyArgumentList
     def __init__(
             self,
-            _traffic_light_manager
+            _traffic_light_manager,
+            _tick_delta_t=0.01
     ):
         self.n_projections = 10
         self.tick_delta_t = 0.01
@@ -33,7 +34,7 @@ class MPCAgent(object):
         # self.max_speed = 0.0
 
         self.pid = PIDController(
-            # max_steering=0.8
+            _dt=self.tick_delta_t
         )
 
     def on_tick(
@@ -44,7 +45,7 @@ class MPCAgent(object):
             _debug_bridge: bridge.CarlaBridge = None
     ):
         controls = [_car_manager.ego.control]
-        next_destinations = _router.next_(5)
+        next_destinations = _router.next_(10)
 
         for projection_step in range(len(next_destinations)):
             should_break = False

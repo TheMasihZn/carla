@@ -30,9 +30,10 @@ class POV(object):
         self.sensor_manager = SensorManager(_bridge, self.car_manager.ego, _sensor_list, _window_size)
         self.traffic_light_manager = _traffic_light_manager
         self.router = _router
-        self.agent = MPCAgent(_traffic_light_manager=self.traffic_light_manager)
+        self.agent = MPCAgent(_traffic_light_manager=self.traffic_light_manager, _tick_delta_t=_bridge.tick_dt)
 
     def on_tick(self, _bridge: CarlaBridge):
+
         self.car_manager.on_tick()
         self.router.on_tick(self.car_manager, _bridge)
         self.traffic_light_manager.on_tick(self.router)

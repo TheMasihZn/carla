@@ -7,7 +7,6 @@ from router import Router
 from calculation_delegate import distance_in_route
 
 
-
 class Light:
     def __init__(
             self,
@@ -45,16 +44,29 @@ class Light:
         self.__others_yellow_time = 2.0
         self.__others_green_time = (self.red_time - self.__others_yellow_time * others_n) / others_n
 
+        # debug
+        self.tick_counter = 0
+
     def on_tick(
             self,
             _router: router.Router,
     ):
         new_state = self.actor.get_state()
         if new_state != self.state:
+            # debug
+            if self.name == 13:
+                if new_state == carla.TrafficLightState.Yellow:
+                    print(f'tick per second {self.tick_counter / 15.}')
+            self.tick_counter = 0
             self.__last_elapsed_time = 0.0
             if new_state == carla.TrafficLightState.Green:
                 self.time_to_next_green = - self.green_time
+
             self.state = new_state
+
+        # debug
+        self.tick_counter += 1
+
         current_elapsed_time = self.actor.get_elapsed_time()
         self.time_to_next_green += current_elapsed_time - self.__last_elapsed_time
         self.__last_elapsed_time = current_elapsed_time
