@@ -6,10 +6,10 @@ import carla
 
 class PIDController(object):
     def __init__(self):
-        self.accelerator = PIDAcceleration(target_speed=40)
+        self.accelerator = PIDAcceleration()
         self.steer = PIDSteering()
 
-    def get_new_control(
+    def get_control_for_t(
             self,
             _previous_control: carla.VehicleControl,
             _should_stop: bool,
@@ -17,13 +17,14 @@ class PIDController(object):
             _current_speed,
             _dest: carla.Location,
             _now_at: carla.Location,
-            _forward_v
+            _forward_v,
+            _dt
     ):
         if _should_stop:
             _previous_control.brake = 1
             _previous_control.throttle = 0
         else:
-            throttle_adjustment = self.accelerator.on_tick(_target_speed=_target_speed, speed=_current_speed)
+            throttle_adjustment = self.accelerator.on_tick(_target_speed=_target_speed, _speed=_current_speed, _dt=_dt)
             _previous_control.throttle = throttle_adjustment
             _previous_control.brake = 0
 
@@ -39,22 +40,22 @@ class PIDController(object):
 
 
 class PIDAcceleration(object):
-    def __init__(self, target_speed):
-        self._k_p = 1.0
-        self._k_i = 0.0
-        self._k_d = 0.0
-        self._dt = 0.03
+    def __init__(self):
+        self._k_p = 0.1
+        self._k_i = 0.05
+        self._k_d = 0.1
         self._error_buffer = deque(maxlen=10)
 
-    def on_tick(self,_target_speed, speed):
-        error = _target_speed - speed
+    def on_tick(self, _target_speed, _speed, _dt):
+        _dt = 0.001 if _dt < 0.001 else _dt
+        error = _target_speed - _speed
         if error < 0:
             return 0
         self._error_buffer.append(error)
 
         if len(self._error_buffer) >= 2:
-            _de = (self._error_buffer[-1] - self._error_buffer[-2]) / self._dt
-            _ie = sum(self._error_buffer) * self._dt
+            _de = (self._error_buffer[-1] - self._error_buffer[-2]) / _dt
+            _ie = sum(self._error_buffer) * _dt
         else:
             _de = 0.0
             _ie = 0.0

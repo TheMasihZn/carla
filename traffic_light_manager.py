@@ -85,6 +85,15 @@ class Light:
 
             self.is_synced = True
 
+        def state_in_(t: float):
+            if self.time_to_next_green + t < 0:
+                return carla.TrafficLightState.Green
+            elif self.time_to_next_green + t < self.yellow_time:
+                return carla.TrafficLightState.Yellow
+            else:
+                return carla.TrafficLightState.Red
+
+
 
 class TrafficLights(object):
     def __init__(self, _bridge: bridge.CarlaBridge, _router: router.Router, _initial_settings):

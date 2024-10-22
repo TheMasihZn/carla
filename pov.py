@@ -30,13 +30,15 @@ class POV(object):
         self.sensor_manager = SensorManager(_bridge, self.car_manager.ego, _sensor_list, _window_size)
         self.traffic_light_manager = _traffic_light_manager
         self.router = _router
-        self.agent = MPCAgent(_traffic_light_manager=self.traffic_light_manager, _tick_delta_t=_bridge.tick_dt)
+        self.agent = MPCAgent(_traffic_light_manager=self.traffic_light_manager)
+        self.dt = 0.01 # never used
 
     def on_tick(self, _bridge: CarlaBridge):
 
         self.car_manager.on_tick()
         self.router.on_tick(self.car_manager, _bridge)
         self.traffic_light_manager.on_tick(self.router)
+        self.dt = _bridge.settings.fixed_delta_seconds
 
         if self.hud.window_closed:
             return 'break'
@@ -45,7 +47,7 @@ class POV(object):
             _car_manager=self.car_manager,
             _tl_manager=self.traffic_light_manager,
             _router=self.router,
-            _debug_bridge=_bridge
+            _dt=self.dt
         )
 
         self.hud.update_text(

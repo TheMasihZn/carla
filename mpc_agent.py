@@ -3,7 +3,6 @@ import carla
 import bridge
 import car_manager
 import cars
-import mpc_projection
 import router
 import traffic_light_manager
 from calculation_delegate import location_equal
@@ -15,11 +14,9 @@ class MPCAgent(object):
     # noinspection PyArgumentList
     def __init__(
             self,
-            _traffic_light_manager,
-            _tick_delta_t=0.01
+            _traffic_light_manager
     ):
         self.n_projections = 10
-        self.tick_delta_t = 0.01
         self.max_speed = 40
         self.max_steer = 0.8
         self.safe_distance = 5.0
@@ -33,16 +30,14 @@ class MPCAgent(object):
         # self.stop_dist = None
         # self.max_speed = 0.0
 
-        self.pid = PIDController(
-            _dt=self.tick_delta_t
-        )
+        self.pid = PIDController()
 
     def on_tick(
             self,
             _car_manager: car_manager.CarManager,
             _tl_manager: traffic_light_manager.TrafficLights,
             _router: router.Router,
-            _debug_bridge: bridge.CarlaBridge = None
+            _dt: float
     ):
         controls = [_car_manager.ego.control]
         next_destinations = _router.next_(10)
@@ -54,7 +49,7 @@ class MPCAgent(object):
                 (
                     (
                             n.distance_ego_to_car +
-                            n.speed_mps * (projection_step * self.tick_delta_t)
+                            n.speed_mps * (projection_step * _dt)
                     ),
                     n.speed
                 )
@@ -75,12 +70,19 @@ class MPCAgent(object):
                     self.target_speed = self.max_speed
 
             next_light = self.traffic_lights.targets[0]
+            projected_d_to_ego = next_light.distance_from_ego + (
+                    (_dt * projection_step)
+                    *
+                    _car_manager.ego.speed_mps
+                    *
+                    (-1 if next_light.distance_from_ego > 0 else 1)  # todo fix d never < 0
+            )
             if next_light.state == carla.TrafficLightState.Red:
                 if location_equal(_car_manager.ego.location, next_light.location,
                                   7 * self.safe_distance):
                     should_break = True
 
-            control = self.pid.get_new_control(
+            control = self.pid.get_control_for_t(
                 _previous_control=_car_manager.ego.control,
                 _should_stop=should_break,
                 _target_speed=self.target_speed,
@@ -88,7 +90,8 @@ class MPCAgent(object):
                 _dest=_router.next_destination().location,
                 _now_at=_car_manager.ego.location,
                 _forward_v=_car_manager.ego.forward,
+                _dt=_dt * projection_step
             )
+
             controls.append(control)
-        #     todo choose a good control
         _car_manager.ego.inject_control(controls[0])

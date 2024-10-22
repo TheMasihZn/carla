@@ -22,7 +22,7 @@ class Router(object):
 
     def on_tick(
             self,
-            _car_manager: car_manager.CarManager,
+            _car_manager,
             _bridge: CarlaBridge
     ):
         for step in self.route:
