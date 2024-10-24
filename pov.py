@@ -7,7 +7,7 @@ from bridge import CarlaBridge
 from cars import Ego
 from sensor_manager import SensorManager
 from hud import HUD
-from mpc_agent import MPCAgent
+from agent import Agent
 from router import Router
 from traffic_light_manager import TrafficLights
 
@@ -30,8 +30,8 @@ class POV(object):
         self.sensor_manager = SensorManager(_bridge, self.car_manager.ego, _sensor_list, _window_size)
         self.traffic_light_manager = _traffic_light_manager
         self.router = _router
-        self.agent = MPCAgent(_traffic_light_manager=self.traffic_light_manager)
-        self.dt = 0.01 # never used
+        self.agent = Agent(_traffic_light_manager=self.traffic_light_manager)
+        self.dt = 0.01  # never used
 
     def on_tick(self, _bridge: CarlaBridge):
 

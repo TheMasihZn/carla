@@ -94,7 +94,6 @@ class Light:
                 return carla.TrafficLightState.Red
 
 
-
 class TrafficLights(object):
     def __init__(self, _bridge: bridge.CarlaBridge, _router: router.Router, _initial_settings):
 
