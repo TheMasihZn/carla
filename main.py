@@ -70,7 +70,7 @@ if __name__ == '__main__':
             _bridge=bridge,
             _models_file_path='models.csv',
             _ego_spawn_point=spawn_transform,
-            _initial_traffic=0
+            _initial_traffic=10
         )
 
         bound_x = 0.5 + car_manager.ego.bounding_box.extent.x

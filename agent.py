@@ -58,15 +58,15 @@ class Agent(object):
                 relevant_npc_list,
                 key=lambda _distance_speed: _distance_speed[0]
             )
-            for _distance_speed in relevant_npc_list:
-                d, s = _distance_speed
-                if d < self.safe_distance:
+            if len(relevant_npc_list) > 0:
+                d, s = relevant_npc_list[0]
+                if d < 3 * self.safe_distance:
                     should_break = True
 
-                elif d < 2 * self.safe_distance:
+                elif d < 4 * self.safe_distance:
                     self.target_speed = s
 
-                elif d > 6 * self.safe_distance:
+                elif d > 8 * self.safe_distance:
                     self.target_speed = self.max_speed
 
             next_light = self.traffic_lights.targets[0]
@@ -96,61 +96,3 @@ class Agent(object):
             controls.append(control)
         _car_manager.ego.inject_control(controls[0])
 
-    def project(self, _car_manager: car_manager.CarManager, _router: router.Router, _dt, n=10):
-
-        controls = [_car_manager.ego.control]
-        next_destinations = _router.next_(n)
-
-        for projection_step in range(len(next_destinations)):
-            should_break = False
-
-            relevant_npc_list = [
-                (
-                    (
-                            n.distance_ego_to_car +
-                            n.speed_mps * (projection_step * _dt)
-                    ),
-                    n.speed
-                )
-                for n in _car_manager.npc_list if n.distance_ego_to_car > 0]
-            sorted(
-                relevant_npc_list,
-                key=lambda _distance_speed: _distance_speed[0]
-            )
-            for _distance_speed in relevant_npc_list:
-                d, s = _distance_speed
-                if d < self.safe_distance:
-                    should_break = True
-
-                elif d < 2 * self.safe_distance:
-                    self.target_speed = s
-
-                elif d > 6 * self.safe_distance:
-                    self.target_speed = self.max_speed
-
-            next_light = self.traffic_lights.targets[0]
-            projected_d_to_ego = next_light.distance_from_ego + (
-                    (_dt * projection_step)
-                    *
-                    _car_manager.ego.speed_mps
-                    *
-                    (-1 if next_light.distance_from_ego > 0 else 1)  # todo fix d never < 0
-            )
-            if next_light.state == carla.TrafficLightState.Red:
-                if location_equal(_car_manager.ego.location, next_light.location,
-                                  7 * self.safe_distance):
-                    should_break = True
-
-            control = self.pid.get_control_for_t(
-                _previous_control=_car_manager.ego.control,
-                _should_stop=should_break,
-                _target_speed=self.target_speed,
-                _current_speed=_car_manager.ego.speed,
-                _dest=_router.next_destination().location,
-                _now_at=_car_manager.ego.location,
-                _forward_v=_car_manager.ego.forward,
-                _dt=_dt * projection_step
-            )
-
-            controls.append(control)
-        _car_manager.ego.inject_control(controls[0])
