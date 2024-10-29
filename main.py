@@ -124,18 +124,21 @@ if __name__ == '__main__':
             _window_size=window_size
         )
 
+        # todo only comment here for sync and async
         bridge.go_sync()
 
         while True:
-            bridge.world.tick()
-            # bridge.world.wait_for_tick()
+            bridge.tick()
+
             if 'break' in pov.on_tick(bridge):
                 break
 
     except KeyboardInterrupt:
         pass
-    # except Exception as e:
-    #     print(e)
+    except RuntimeError:
+        pass
+    except Exception as e:
+        print(e)
     finally:
         bridge.go_async()
         if pov:

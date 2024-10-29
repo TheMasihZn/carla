@@ -42,6 +42,20 @@ class Agent(object):
         controls = [_car_manager.ego.control]
         next_destinations = _router.next_(10)
 
+
+        #
+        # # todo these are the components you require:
+        # distance_to_the_nearest_traffic_light = self.traffic_lights.targets[0].distance_from_ego
+        # time_to_next_green_phase_of_the_nearest_traffic_light = self.traffic_lights.targets[0].time_to_next_green
+        # maximum_ego_velocity = self.max_speed
+        #
+        # # todo implement your function which i guess is your solve function
+        # mpc.solve(
+        #     distance_to_the_nearest_traffic_light,
+        #     time_to_next_green_phase_of_the_nearest_traffic_light,
+        #     maximum_ego_velocity
+        # )
+
         for projection_step in range(len(next_destinations)):
             should_break = False
 
@@ -70,13 +84,13 @@ class Agent(object):
                     self.target_speed = self.max_speed
 
             next_light = self.traffic_lights.targets[0]
-            projected_d_to_ego = next_light.distance_from_ego + (
-                    (_dt * projection_step)
-                    *
-                    _car_manager.ego.speed_mps
-                    *
-                    (-1 if next_light.distance_from_ego > 0 else 1)  # todo fix d never < 0
-            )
+            # projected_d_to_ego = next_light.distance_from_ego + (
+            #         (_dt * projection_step)
+            #         *
+            #         _car_manager.ego.speed_mps
+            #         *
+            #         (-1 if next_light.distance_from_ego > 0 else 1)  # todo fix d never < 0
+            # )
             if next_light.state == carla.TrafficLightState.Red:
                 if location_equal(_car_manager.ego.location, next_light.location,
                                   7 * self.safe_distance):
@@ -95,4 +109,3 @@ class Agent(object):
 
             controls.append(control)
         _car_manager.ego.inject_control(controls[0])
-

@@ -43,7 +43,7 @@ class CarManager:
             blueprint = data[-1]
             blueprint.set_attribute('role_name', 'npc')
             actor = self.__spawn_car_actor(_bridge, blueprint)
-            actor.set_autopilot(True)
+            _bridge.activate_autopilot(actor)
             self.npc_list.append(cars.NPC(actor=actor, data=data[:-1]))
         print(f'{_initial_traffic} NPCs spawned')
 

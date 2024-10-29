@@ -1,5 +1,6 @@
 import random
 import carla
+import time
 
 random.seed(0)
 
@@ -8,7 +9,8 @@ random.seed(0)
 class CarlaBridge(object):
 
     def __init__(self):
-        self.tick_dt = 0.02173913043478260869565217391304
+        #              \/ \/ \/ the time based on async mode
+        self.__tick_dt = 0.02742596348884381030162642100976
         self.client = carla.Client('127.0.0.1', 2000)
         self.world: carla.World = self.client.get_world()
         self.settings: carla.WorldSettings = self.world.get_settings()
@@ -29,7 +31,11 @@ class CarlaBridge(object):
         _blueprints = self.blueprint_library.filter('vehicle.*')
         self.vehicle_blueprints = [bp for bp in _blueprints if 'vehicle' in bp.tags]
 
-        self.hints = []
+        self.is_sync = False
+        self.__last_tick_time = 0.0
+
+        # todo cannot import these directly.
+        self.__setAutopilotCommand = carla.command.SetAutopilot
 
     def spawn_actor(self,
                     bp: carla.ActorBlueprint,
@@ -74,12 +80,49 @@ class CarlaBridge(object):
         self.settings.synchronous_mode = False
         self.settings.fixed_delta_seconds = None
         self.world.apply_settings(self.settings)
+
+        self.is_sync = False
         print('async')
 
     def go_sync(self):
         self.traffic_manager.set_synchronous_mode(True)
         self.settings.synchronous_mode = True
-        self.settings.fixed_delta_seconds = self.tick_dt
+        self.settings.fixed_delta_seconds = self.__tick_dt
         self.world.apply_settings(self.settings)
+
+        self.is_sync = True
         print('sync')
 
+    def tick(self):
+        if not self.is_sync:
+            self.world.wait_for_tick()
+            return
+
+        self.__last_tick_time = time.time()
+        self.world.tick()
+
+    def on_post_tick(self):
+        if self.is_sync:
+            return
+        algorythm_time = time.time() - self.__last_tick_time
+        delta_t = self.__tick_dt - algorythm_time
+        if delta_t >= 0:
+            time.sleep(delta_t)
+        else:
+            raise Exception("lag: increase Bridge.tick_dt parameter to match the logged ticks per second in async mode")
+
+    def get_tick_dt(self):
+        if self.is_sync:
+            return self.settings.max_substep_delta_time
+        else:
+            return self.__tick_dt
+
+    def activate_autopilot(self, actor: carla.Vehicle):
+
+        # todo this is the part you have all the access you need to manipulate anything about the auto pilot
+        # \/ \/ \/ \/ \/
+
+        cmd = self.__setAutopilotCommand(actor.id, True, self.traffic_manager.get_port())
+        self.client.apply_batch_sync([cmd])
+
+        # todo up to this point you can set you custom autopilot function instead (if possible)
