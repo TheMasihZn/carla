@@ -53,7 +53,7 @@ class POV(object):
 
         self.car_manager.on_tick()
         self.router.on_tick(self.car_manager, _bridge)
-        self.traffic_light_manager.on_tick(self.router)
+        self.traffic_light_manager.on_tick(self.router, _bridge)
 
         self.agent.on_tick(
             _car_manager=self.car_manager,
@@ -79,3 +79,4 @@ class POV(object):
 
     def close(self):
         self.hud.close()
+

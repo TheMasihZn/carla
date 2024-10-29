@@ -1,6 +1,5 @@
 import cProfile
 import pstats
-import pygame
 import bridge
 
 import carla
@@ -16,7 +15,14 @@ from pov import POV
 from traffic_light_manager import TrafficLights
 
 if __name__ == '__main__':
-    bridge = bridge.CarlaBridge()
+
+
+    try:
+        bridge = bridge.CarlaBridge()
+
+    except RuntimeError:
+        print("\nSimulation Running?!\n")
+        exit()
 
     bridge.spectator.set_transform(
         carla.Transform(
@@ -124,7 +130,10 @@ if __name__ == '__main__':
             _window_size=window_size
         )
 
+        tl_manager.sync_targets(_bridge=bridge)
+
         # todo only comment here for sync and async
+        # bridge.go_async()
         bridge.go_sync()
 
         while True:
@@ -133,16 +142,14 @@ if __name__ == '__main__':
             if 'break' in pov.on_tick(bridge):
                 break
 
+            bridge.post_tick()
+
     except KeyboardInterrupt:
         pass
-    except RuntimeError:
-        pass
-    except Exception as e:
-        print(e)
+    # except Exception as e:
+    #     print(e)
     finally:
         bridge.go_async()
         if pov:
             pov.close()
-        pygame.quit()
-        print('destroying actors...')
         bridge.delete_created_actors()

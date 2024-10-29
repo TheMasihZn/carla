@@ -4,7 +4,11 @@ import threading
 
 import carla
 import numpy as np
+
+from os import environ
+environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
 import pygame
+
 from pygame.locals import (KMOD_CTRL, K_ESCAPE, K_q, K_c, WINDOWMOVED)
 
 from cars import Ego
@@ -147,5 +151,6 @@ class HUD(object):
         self.thread_wait = False
 
     def close(self):
+        pygame.quit()
         if not self.window_closed:
             self.window_closed = True

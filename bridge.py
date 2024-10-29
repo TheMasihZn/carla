@@ -2,6 +2,8 @@ import random
 import carla
 import time
 
+import numpy as np
+
 random.seed(0)
 
 
@@ -9,10 +11,14 @@ random.seed(0)
 class CarlaBridge(object):
 
     def __init__(self):
-        #              \/ \/ \/ the time based on async mode
-        self.__tick_dt = 0.02742596348884381030162642100976
+        #              \/ \/ \/ the time based on async mode (1 / average async tps)
+        self.tick_dt = 1 / 60
+        self.async_hardware_factor = 1.0860360178222745
+        self.sync_hardware_factor = 0.6352310657348632
+        self._dt_list = []
         self.client = carla.Client('127.0.0.1', 2000)
         self.world: carla.World = self.client.get_world()
+
         self.settings: carla.WorldSettings = self.world.get_settings()
         self.map: carla.Map = self.world.get_map()
 
@@ -31,8 +37,9 @@ class CarlaBridge(object):
         _blueprints = self.blueprint_library.filter('vehicle.*')
         self.vehicle_blueprints = [bp for bp in _blueprints if 'vehicle' in bp.tags]
 
-        self.is_sync = False
-        self.__last_tick_time = 0.0
+        self.is_async = True
+        self.__last_tick_time = -1
+        self.__tps_error = 0
 
         # todo cannot import these directly.
         self.__setAutopilotCommand = carla.command.SetAutopilot
@@ -61,6 +68,7 @@ class CarlaBridge(object):
         return list(actors)
 
     def delete_created_actors(self):
+        print('destroying actors...')
         while True:
             destroy_list = [a for a in self.get_actors()
                             if 'role_name' in a.attributes.keys()
@@ -78,44 +86,63 @@ class CarlaBridge(object):
     def go_async(self):
         self.traffic_manager.set_synchronous_mode(False)
         self.settings.synchronous_mode = False
-        self.settings.fixed_delta_seconds = None
+        self.settings.fixed_delta_seconds = self.tick_dt / self.async_hardware_factor
+        self.settings.max_substeps = 10
+        self.settings.max_substep_delta_time = self.settings.fixed_delta_seconds / (self.settings.max_substeps - 2)
         self.world.apply_settings(self.settings)
 
-        self.is_sync = False
+        self.is_async = True
         print('async')
 
     def go_sync(self):
-        self.traffic_manager.set_synchronous_mode(True)
+        self.settings.fixed_delta_seconds = self.tick_dt / self.sync_hardware_factor
+        self.settings.max_substeps = 10
+        self.settings.max_substep_delta_time = self.settings.fixed_delta_seconds / (self.settings.max_substeps - 2)
         self.settings.synchronous_mode = True
-        self.settings.fixed_delta_seconds = self.__tick_dt
         self.world.apply_settings(self.settings)
+        self.traffic_manager.set_synchronous_mode(True)
 
-        self.is_sync = True
+        self.is_async = False
         print('sync')
 
     def tick(self):
-        if not self.is_sync:
+        now = time.time()
+        if self.__last_tick_time == -1:
+            self.__last_tick_time = now
+        if self.is_async:
             self.world.wait_for_tick()
-            return
+            dt = now - self.__last_tick_time
+            if self._dt_list is not None:
+                self._dt_list.append(dt)
+                if len(self._dt_list) < 100:
+                    self._dt_list.append(dt)
+                else:
+                    print("async average tps: %f" % np.average(np.array(self._dt_list)))
+                    self._dt_list = None
+            self.__last_tick_time = now
+        else:
+            self.world.tick()
 
-        self.__last_tick_time = time.time()
-        self.world.tick()
-
-    def on_post_tick(self):
-        if self.is_sync:
+    def post_tick(self):
+        if self.is_async:
             return
         algorythm_time = time.time() - self.__last_tick_time
-        delta_t = self.__tick_dt - algorythm_time
+        delta_t = self.tick_dt - algorythm_time
         if delta_t >= 0:
             time.sleep(delta_t)
-        else:
-            raise Exception("lag: increase Bridge.tick_dt parameter to match the logged ticks per second in async mode")
+            self.__tps_error = 0
+        # else:
+        #     self.__tps_error += 1
+        #     if self.__tps_error > 50:
+        #         raise Exception("lag: increase Bridge.tick_dt to match the system\n" +
+        #                         "average ticks per second in logged in async mode")
+        self.__last_tick_time = time.time()
 
     def get_tick_dt(self):
-        if self.is_sync:
-            return self.settings.max_substep_delta_time
+        if self.is_async:
+            return self.settings.fixed_delta_seconds
         else:
-            return self.__tick_dt
+            return self.tick_dt
 
     def activate_autopilot(self, actor: carla.Vehicle):
 

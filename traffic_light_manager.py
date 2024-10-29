@@ -1,3 +1,5 @@
+import time
+
 import carla
 
 import bridge
@@ -31,6 +33,7 @@ class Light:
         self.state: carla.TrafficLightState = carla.TrafficLightState.Unknown
 
         self.__last_elapsed_time = 0.0
+        self.real_time_start_green = time.time()
         self.is_synced = False
 
         self._group = self.actor.get_group_traffic_lights()
@@ -50,17 +53,30 @@ class Light:
     def on_tick(
             self,
             _router: router.Router,
+            _bridge: bridge.CarlaBridge,
     ):
         new_state = self.actor.get_state()
         if new_state != self.state:
             # debug
-            if self.name == 13:
-                if new_state == carla.TrafficLightState.Yellow:
-                    print(f'tick per second {self.tick_counter / 15.}')
+            if new_state == carla.TrafficLightState.Yellow:
+                now = time.time()
+                # simulation_time = self.tick_counter / self.green_time
+                simulation_time = now - self.real_time_start_green
+                difference = abs(simulation_time - self.green_time)
+                if self.name != "13":
+                    return
+                if difference > 0.5:
+                    time_fraction = 1 / (simulation_time / self.green_time)
+                    preset_hardware_factor =\
+                        _bridge.async_hardware_factor if _bridge.is_async else _bridge.sync_hardware_factor
+                    hardware_factor = time_fraction * preset_hardware_factor
+                    print(f'\tdiffrence is {difference}, hardware factor is {hardware_factor}')
+
             self.tick_counter = 0
             self.__last_elapsed_time = 0.0
             if new_state == carla.TrafficLightState.Green:
                 self.time_to_next_green = - self.green_time
+                self.real_time_start_green = time.time()
 
             self.state = new_state
 
@@ -85,13 +101,13 @@ class Light:
 
             self.is_synced = True
 
-        def state_in_(t: float):
-            if self.time_to_next_green + t < 0:
-                return carla.TrafficLightState.Green
-            elif self.time_to_next_green + t < self.yellow_time:
-                return carla.TrafficLightState.Yellow
-            else:
-                return carla.TrafficLightState.Red
+    def state_in_(self, t: float):
+        if self.time_to_next_green + t < 0:
+            return carla.TrafficLightState.Green
+        elif self.time_to_next_green + t < self.yellow_time:
+            return carla.TrafficLightState.Yellow
+        else:
+            return carla.TrafficLightState.Red
 
 
 class TrafficLights(object):
@@ -120,14 +136,16 @@ class TrafficLights(object):
                 )
             )
 
+    def sync_targets(self, _bridge):
         for tl in self.targets:
             tl: Light = tl
             if not tl.is_synced:
                 while not tl.is_synced:
-                    _bridge.world.wait_for_tick()
+                    _bridge.tick()
                     tl.sync_group_and_apply_settings()
+        print("\ttarget traffic lights synced")
 
-    def on_tick(self, _router: Router):
+    def on_tick(self, _router: Router, _bridge: bridge.CarlaBridge):
         for tl in self.targets:
-            tl.on_tick(_router)
+            tl.on_tick(_router, _bridge=_bridge)
         sorted(self.targets, key=lambda l: l.distance_from_ego)
